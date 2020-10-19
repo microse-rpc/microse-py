@@ -1,6 +1,7 @@
 from urllib.parse import urlparse, parse_qs
 from asyncio.futures import Future
 from typing import Callable
+import asyncio
 import sys
 import os
 
@@ -24,7 +25,7 @@ class RpcChannel:
         self.codec = "JSON"
         self.ssl = None
         self.maxDelay = 5000
-        self.handleError = print_err
+        self.onError(print_err)
 
         if type(options) == dict:
             self.protocol = options.get("protocol") or self.protocol
@@ -97,7 +98,15 @@ class RpcChannel:
             return "rpc://" + self.hostname + ":" + str(self.port)
 
     def onError(self, handler: Callable):
-        self.handleError = handler
+        def handle(err: Exception):
+            res = handler(err)
+
+            # If the returning value of handleError is a coroutine or future
+            # object, run it asynchronously.
+            if asyncio.iscoroutine(res) or asyncio.isfuture(res):
+                asyncio.create_task(res)
+
+        self.handleError = handle
 
     def open(self) -> Future:
         pass

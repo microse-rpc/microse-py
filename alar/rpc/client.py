@@ -8,6 +8,9 @@ import asyncio
 
 
 loop = asyncio.get_event_loop()
+ResolvableEvents = [ChannelEvents.RETURN,
+                    ChannelEvents.INVOKE,
+                    ChannelEvents.YIELD]
 
 
 class RpcClient(RpcChannel):
@@ -68,97 +71,113 @@ class RpcClient(RpcChannel):
             self.socket = await connect(url, ssl=self.ssl)
 
         # Accept the first message for handshake.
-        res = await self.socket.recv()
+        msg = await self.socket.recv()
+        res = self.__parseResponse(msg)
 
-        if type(res) != str:
+        if type(res) != list or res[0] != ChannelEvents.CONNECT:
+            self.state = "closed"
+            self.socket.close(1002)
             raise Exception("Cannot connect to " + self.dsn)
+        else:
+            self.state = "connected"
+            self.__updateServerId(str(res[1]))
+            asyncio.create_task(self.__listenMessage())
 
-        msg: list = JSON.parse(res)
+    def __updateServerId(self, serverId: str):
+        if serverId != self.serverId:
+            for name in self.registry:
+                mod: ModuleProxy = self.registry[name]
+                singletons = mod.remoteSingletons
 
-        if type(msg) != list or msg[0] != ChannelEvents.CONNECT:
-            raise Exception("Cannot connect to " + self.dsn)
+                if singletons.get(self.serverId):
+                    singletons[serverId] = singletons[self.serverId]
+                    singletons.pop(self.serverId)
 
-        self.state = "connected"
-        self.__updateServerId(str(msg[1]))
-
-        asyncio.create_task(self.__listenMessage())
-        asyncio.create_task(self.__listenClose())
+            self.serverId = serverId
 
     async def __listenMessage(self):
         while True:
-            if self.closed or self.socket.closed:
-                break
+            msg: Any = None
 
             try:
-                res: str = await self.socket.recv()
-
-                if type(res) != str:
-                    continue
-
-                msg: list = JSON.parse(res)
-
-                if type(msg) != list or type(msg[0]) != int:
-                    continue
-
-                event: int = msg[0]
-                taskId = msg[1]
-                data: Any = None
-
-                if len(msg) == 3:
-                    data = msg[2]
-
-                # When receiving response from the server, resolve immediately.
-                if event in [ChannelEvents.RETURN, ChannelEvents.INVOKE, ChannelEvents.YIELD]:
-                    task: Task = self.tasks.get(taskId)
-
-                    if task:
-                        task.resolve(data)
-
-                # If any error occurs on the server, it will be delivered to the
-                # client.
-                elif event == ChannelEvents.THROW:
-                    task: Task = self.tasks.get(taskId)
-
-                    if task:
-                        task.reject(parseException(data))
-
-                elif event == ChannelEvents.PING:
-                    _now = now()
-                    ts = int(taskId or _now)
-
-                    if len(str(ts)) == 10:
-                        ts *= 1000
-
-                    if _now - ts > self.maxDelay:
-                        self.socket.close(1001, "Slow Connection")
-                        break
-                    else:
-                        self.send(ChannelEvents.PONG, _now)
-
-                elif event == ChannelEvents.PUBLISH:
-                    # If receives the PUBLISH event, call all the handlers
-                    # bound to the corresponding topic.
-                    handlers: list[Callable] = self.topics.get(str(taskId))
-
-                    if handlers:
-                        for handle in handlers:
-                            try:
-                                handle(data)
-                            except Exception as err:
-                                self.handleError(err)
-
+                msg = await self.socket.recv()
             except ConnectionClosedOK:
+                pass
+            except ConnectionError:
                 pass
             except Exception as err:
                 self.handleError(err)
 
-    async def __listenClose(self):
-        while True:
-            if self.closed or self.socket.closed:
+            if self.socket.closed or self.closed:
+                # Handle disconnection asynchronously.
+                asyncio.create_task(self.__handleDisconnection())
                 break
 
-            await asyncio.sleep(0.01)
+            # Process the message asynchronously.
+            asyncio.create_task(self.__handleMessage(msg))
 
+    def __parseResponse(self, msg: Any) -> list:
+        if type(msg) != str:
+            return
+
+        try:
+            return JSON.parse(msg)
+        except Exception as err:
+            self.handleError(err)
+
+    async def __handleMessage(self, msg: Any):
+        res = self.__parseResponse(msg)
+
+        if type(res) != list or type(res[0]) != int:
+            return
+
+        event: int = res[0]
+        taskId = res[1]
+        data: Any = None
+
+        if len(res) == 3:
+            data = res[2]
+
+        # When receiving response from the server, resolve immediately.
+        if event in ResolvableEvents:
+            task: Task = self.tasks.get(taskId)
+
+            if task:
+                task.resolve(data)
+
+        # If any error occurs on the server, it will be delivered to the
+        # client.
+        elif event == ChannelEvents.THROW:
+            task: Task = self.tasks.get(taskId)
+
+            if task:
+                task.reject(parseException(data))
+
+        elif event == ChannelEvents.PING:
+            _now = now()
+            ts = int(taskId or _now)
+
+            if len(str(ts)) == 10:
+                ts *= 1000
+
+            if _now - ts > self.maxDelay:
+                self.socket.close(1001, "Slow Connection")
+            else:
+                self.send(ChannelEvents.PONG, _now)
+
+        elif event == ChannelEvents.PUBLISH:
+            # If receives the PUBLISH event, call all the handlers
+            # bound to the corresponding topic.
+            handlers: list[Callable] = self.topics.get(str(taskId))
+
+            if handlers:
+                for handle in handlers:
+                    try:
+                        handle(data)
+                    except Exception as err:
+                        self.handleError(err)
+
+    async def __handleDisconnection(self):
         # If the socket is closed or reset. but the channel remains open, pause
         # the service immediately and try to reconnect.
         if not self.connecting and not self.closed:
@@ -263,18 +282,6 @@ class RpcClient(RpcChannel):
 
     def __createRemoteInstance(self, mod: ModuleProxy):
         return RpcInstance(mod, self)
-
-    def __updateServerId(self, serverId: str):
-        if serverId != self.serverId:
-            for name in self.registry:
-                mod: ModuleProxy = self.registry[name]
-                singletons = mod.remoteSingletons
-
-                if singletons.get(self.serverId):
-                    singletons[serverId] = singletons[self.serverId]
-                    singletons.pop(self.serverId)
-
-            self.serverId = serverId
 
 
 class RpcInstance:

@@ -51,6 +51,23 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         await client.close()
         await server.close()
 
+    async def test_closing_server_before_closing_client(self):
+        server = await app.serve(_config)
+        client = await app.connect(_config)
+
+        server.register(app.services.detail)
+        client.register(app.services.detail)
+
+        app.services.detail("").getOrgs()
+        self.assertEqual(server.clients.size, 1)
+        self.assertEqual(server.tasks.size, 1)
+
+        await server.close()
+        self.assertEqual(server.clients.size, 0)
+        self.assertEqual(server.tasks.size, 0)
+
+        await client.close()
+
     async def test_life_cycle(self):
         server = await app.serve(_config, False)
         server.register(app.services.detail)
