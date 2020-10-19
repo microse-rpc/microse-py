@@ -111,10 +111,7 @@ class RpcServer(RpcChannel):
 
         if self.enableLifeCycle:
             for mod in self.registry.values():
-                try:
-                    await tryLifeCycleFunction(mod, "destroy")
-                except:
-                    pass
+                await tryLifeCycleFunction(mod, "destroy", self.handleError)
 
         if self.proxyRoot:
             self.proxyRoot.server = None
@@ -214,7 +211,6 @@ class RpcServer(RpcChannel):
                         event = ChannelEvents.RETURN
 
                 except Exception as err:
-                    print(self.registry)
                     event = ChannelEvents.THROW
                     data = err
 

@@ -20,7 +20,7 @@ class RpcClient(RpcChannel):
         self.state = "initiated"
         self.socket = None
         self.registry = {}
-        self.topics = {}
+        self.topics = Map()
         self.tasks = Map()  # Stores the all suspended generator calls.
         self.taskId = sequid(0)
 
@@ -201,7 +201,7 @@ class RpcClient(RpcChannel):
 
         if handlers == None:
             handlers = [handle]
-            self.topics[topic] = handlers
+            self.topics.set(topic, handlers)
         else:
             handlers.append(handle)
 
@@ -211,8 +211,8 @@ class RpcClient(RpcChannel):
         topic.
         """
         if handle == None:
-            if self.topics.get(topic):
-                self.topics.pop(topic)
+            if self.topics.has(topic):
+                self.topics.delete(topic)
                 return True
         else:
             handlers: list[Callable] = self.topics.get(topic)

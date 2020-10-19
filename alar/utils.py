@@ -42,6 +42,10 @@ class JSON():
 
 
 class Map:
+    @property
+    def size(self):
+        return len(self.__keys)
+
     def __init__(self, entry=[]):
         self.__keys = []
         self.__values = []
@@ -182,11 +186,11 @@ async def tryLifeCycleFunction(mod, fn: str, errorHandle: Callable):
         if hasattr(ins, "destroy") and callable(ins.destroy):
             if errorHandle:
                 try:
-                    await ins.init()
+                    await ins.destroy()
                 except Exception as err:
                     errorHandle(err)
             else:
-                await ins.init()
+                await ins.destroy()
 
 
 def throwUnavailableError(module: str):
