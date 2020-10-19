@@ -17,6 +17,7 @@ class RpcClient(RpcChannel):
     def __init__(self, options, host=""):
         RpcChannel.__init__(self, options, host)
         self.timeout = 5000
+        self.pingInterval = 5000
         self.serverId = ""
         self.state = "initiated"
         self.socket = None
@@ -28,6 +29,8 @@ class RpcClient(RpcChannel):
         if type(options) == dict:
             self.timeout = options.get("timeout") or self.timeout
             self.serverId = options.get("serverId") or self.serverId
+            self.pingInterval = options.get(
+                "pingInterval") or self.pingInterval
 
         self.id = self.id or randStr(10)
         self.serverId = self.serverId or self.dsn
@@ -60,7 +63,9 @@ class RpcClient(RpcChannel):
             if self.secret:
                 url += "&secret=" + self.secret
 
-            self.socket = await unix_connect(self.pathname, url)
+            self.socket = await unix_connect(self.pathname, url, ssl=self.ssl,
+                                             ping_interval=self.pingInterval,
+                                             ping_timeout=self.maxDelay)
         else:
             url = self.protocol + "//" + self.hostname + \
                 ":" + str(self.port) + self.pathname + "?id=" + self.id
@@ -68,7 +73,9 @@ class RpcClient(RpcChannel):
             if self.secret:
                 url += "&secret=" + self.secret
 
-            self.socket = await connect(url, ssl=self.ssl)
+            self.socket = await connect(url, ssl=self.ssl,
+                                        ping_interval=self.pingInterval,
+                                        ping_timeout=self.maxDelay)
 
         # Accept the first message for handshake.
         msg = await self.socket.recv()
@@ -82,6 +89,7 @@ class RpcClient(RpcChannel):
             self.state = "connected"
             self.__updateServerId(str(res[1]))
             asyncio.create_task(self.__listenMessage())
+            self.resume()
 
     def __updateServerId(self, serverId: str):
         if serverId != self.serverId:
@@ -153,18 +161,6 @@ class RpcClient(RpcChannel):
             if task:
                 task.reject(parseException(data))
 
-        elif event == ChannelEvents.PING:
-            _now = now()
-            ts = int(taskId or _now)
-
-            if len(str(ts)) == 10:
-                ts *= 1000
-
-            if _now - ts > self.maxDelay:
-                self.socket.close(1001, "Slow Connection")
-            else:
-                self.send(ChannelEvents.PONG, _now)
-
         elif event == ChannelEvents.PUBLISH:
             # If receives the PUBLISH event, call all the handlers
             # bound to the corresponding topic.
@@ -191,7 +187,6 @@ class RpcClient(RpcChannel):
 
             try:
                 await self.open()
-                self.resume()
                 break
             except:
                 await asyncio.sleep(2)

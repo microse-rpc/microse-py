@@ -52,15 +52,18 @@ class RpcServer(RpcChannel):
         if isUnixSocket:
             wsServer = await unix_serve(self.__handleConnection, pathname,
                                         process_request=self.__processRequest,
+                                        ping_interval=None,
+                                        ping_timeout=None,
                                         ssl=self.ssl)
         else:
             wsServer = await serve(self.__handleConnection,
                                    self.hostname, self.port,
                                    process_request=self.__processRequest,
+                                   ping_interval=None,
+                                   ping_timeout=None,
                                    ssl=self.ssl)
 
         self.wsServer = wsServer
-        self.__pingTask = asyncio.create_task(self.__listenPing())
 
     async def __processRequest(self, path: str, headers):
         """
@@ -98,8 +101,6 @@ class RpcServer(RpcChannel):
 
     async def close(self):
         if self.wsServer:
-            self.__pingTask and self.__pingTask.cancel()
-
             # wsServer.close() will emit close event on the clients, which
             # already closed tasks and empty maps, so we don't need to do the
             # work here.
@@ -142,9 +143,15 @@ class RpcServer(RpcChannel):
                     "message": str(data.args[0])
                 }
 
-            if self.codec == "JSON":
-                asyncio.create_task(socket.send(
-                    JSON.stringify([event, taskId, data])))
+            _data: Any = None
+
+            if event == ChannelEvents.PONG:
+                _data = [event, int(taskId)]
+            elif self.codec == "JSON":
+                _data = [event, taskId, data]
+
+            if _data:
+                asyncio.create_task(socket.send(JSON.stringify(_data)))
 
     async def __listenMessage(self, socket: WebSocket):
         while True:
@@ -212,17 +219,8 @@ class RpcServer(RpcChannel):
             await self.__handleGeneratorEvent(socket, event, taskId,
                                               module, method, args)
 
-        elif event == ChannelEvents.PONG:
-            info: dict = self.clients.get(socket)
-            info["isAlive"] = True
-            _now = now()
-            ts = int(taskId or _now)
-
-            if len(str(ts)) == 10:
-                ts *= 1000
-
-            if now - ts > self.maxDelay:
-                socket.close(1001, "Slow Connection")
+        elif event == ChannelEvents.PING:
+            self.__dispatch(socket, ChannelEvents.PONG, taskId)
 
     async def __handleInvokeEvent(
         self,
@@ -309,20 +307,3 @@ class RpcServer(RpcChannel):
             data = err
 
         self.__dispatch(socket, event, taskId, data)
-
-    async def __listenPing(self):
-        while True:
-            try:
-                await asyncio.sleep(30)
-
-                client: WebSocket
-                info: dict
-                for (client, info) in self.clients():
-                    if not info["isAlive"]:
-                        asyncio.create_task(
-                            client.close(1001, "Slow Connection"))
-                    else:
-                        client["isAlive"] = False
-                        self.__dispatch(client, ChannelEvents.PING, now())
-            except Exception as err:
-                self.handleError(err)

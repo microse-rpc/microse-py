@@ -10,7 +10,7 @@ local = "__local__"
 
 
 class ChannelEvents(IntEnum):
-    CONNECT, INVOKE, RETURN, THROW, YIELD, PING, PONG, PUBLISH = range(1, 9)
+    CONNECT, INVOKE, RETURN, THROW, YIELD, PUBLISH, PING, PONG = range(1, 9)
 
 
 class JSONSerializable(json.JSONEncoder):
