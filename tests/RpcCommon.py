@@ -54,7 +54,9 @@ class RpcCommonTest:
         await server.terminate()
 
     async def test_serving_and_connecting_rpc_with_url(self):
-        url = "ws://localhost:18888/alar"
+        # There is a bug when using nest_asyncio, if set a domain name instead
+        # an IP address, the server will hangup, the reason is unknown.
+        url = "ws://127.0.0.1:18888/alar"
         server = await serve({"USE_URL": url})
         client = await self.app.connect(url)
 

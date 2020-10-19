@@ -6,6 +6,10 @@ import asyncio
 import os
 import ssl
 import pathlib
+import nest_asyncio
+
+
+nest_asyncio.apply()
 
 
 app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")

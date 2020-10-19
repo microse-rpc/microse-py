@@ -16,7 +16,7 @@ class RpcChannel:
 
     def __init__(self, options, host=""):
         self.protocol = "ws:"
-        self.hostname = "localhost"
+        self.hostname = "127.0.0.1"
         self.port = 80
         self.pathname = "/"
         self.id = ""
