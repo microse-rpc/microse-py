@@ -1,21 +1,10 @@
 import unittest
 from alar.client.app import ModuleProxyApp
-from alar.utils import Map
 from tests.aio import AioTestCase
-from tests.server.process import serve
 from tests.RpcCommon import RpcCommonTest
-import tests.app.config as config
-import asyncio
-import os
-import unittest
 
 
 app = ModuleProxyApp("tests.app")
-_config = {
-    "hostname": config.hostname,
-    "port": config.port,
-    "timeout": config.timeout
-}
 
 
 class StandaloneClientTest(AioTestCase, RpcCommonTest):

@@ -1,6 +1,5 @@
 import unittest
 from alar.client.app import ModuleProxyApp
-from alar.utils import Map
 from tests.aio import AioTestCase
 from tests.server.process import serve
 import tests.app.config as config

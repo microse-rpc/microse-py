@@ -113,6 +113,21 @@ class LocalInstanceTest(AioTestCase):
         self.assertTrue(isinstance(err, Exception))
         self.assertEqual(err.args[0], msg)
 
+    async def test_use_local_instance_when_server_runs_in_same_process(self):
+        server = await app.serve(_config)
+        client = await app.connect(_config)
+
+        server.register(app.services.detail)
+        client.register(app.services.detail)
+
+        data = {}
+        res = await app.services.detail("").setAndGet(data)
+
+        self.assertIs(res, data)
+
+        await client.close()
+        await server.close()
+
 
 if __name__ == "__main__":
     unittest.main()

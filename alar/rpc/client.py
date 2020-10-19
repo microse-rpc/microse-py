@@ -296,30 +296,30 @@ class RpcInstance:
                 return None
 
             def bound(*args):
-                # if ctor:
-                #     root: ModuleProxy = getattr(mod, "root", None)
-                #     server = root and getattr(root, "_server", None)
+                if ctor:
+                    root: ModuleProxy = getattr(mod, "root", None)
+                    server = root and getattr(root, "_server", None)
 
-                #     # If the RPC server and the RPC client runs in the same
-                #     # process, then directly call the local instance to prevent
-                #     # unnecessary network traffics.
-                #     if server and server.id == self.client.serverId:
-                #         ins = mod.instance()
-                #         state = getattr(ins, "__readyState", -1)
+                    # If the RPC server and the RPC client runs in the same
+                    # process, then directly call the local instance to prevent
+                    # unnecessary network traffics.
+                    if server and server.id == self.client.serverId:
+                        ins = mod.instance()
+                        state = getattr(ins, "__readyState", -1)
 
-                #         if state == 0 and not mod.fallbackToLocal():
-                #             throwUnavailableError(mod.name)
-                #         else:
-                #             return getattr(ins, prop)(*args)
+                        if state == 0 and not mod.fallbackToLocal():
+                            throwUnavailableError(mod.name)
+                        else:
+                            return getattr(ins, prop)(*args)
 
-                #     # If the RPC channel is not available, call the local
-                #     # instance and wrap it asynchronous.
-                #     if self.client.state != "connected":
-                #         if mod.fallbackToLocal():
-                #             ins = mod.instance()
-                #             return getattr(ins, prop)(*args)
-                #         else:
-                #             throwUnavailableError(mod.name)
+                    # If the RPC channel is not available, call the local
+                    # instance and wrap it asynchronous.
+                    if self.client.state != "connected":
+                        if mod.fallbackToLocal():
+                            ins = mod.instance()
+                            return getattr(ins, prop)(*args)
+                        else:
+                            throwUnavailableError(mod.name)
 
                 return AwaitableGenerator(self.client,
                                           mod.name, prop, *args)

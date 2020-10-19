@@ -1,15 +1,10 @@
 import unittest
 from alar.app import ModuleProxyApp
 from tests.aio import AioTestCase
-from tests.app.services.detail import detail
 from tests.RpcCommon import RpcCommonTest
 import tests.app.config as config
-import websockets
-import asyncio
 import sys
 import os
-import ssl
-import pathlib
 
 
 app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
