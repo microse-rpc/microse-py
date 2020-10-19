@@ -1,11 +1,8 @@
 from multiprocessing import Process, Manager
 from alar.app import ModuleProxyApp
 from alar.rpc.server import RpcServer
-from tests.app.services.detail import detail
 import tests.app.config as config
-import websockets
 import asyncio
-import sys
 import os
 import ssl
 import pathlib

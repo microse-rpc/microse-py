@@ -4,6 +4,7 @@ from tests.aio import AioTestCase
 from tests.app.simple import simple
 from tests.app.services.detail import detail
 import tests.app.config as config
+from os.path import normpath
 import os
 
 
@@ -18,18 +19,18 @@ _config = {
 class LocalInstanceTest(AioTestCase):
     def test_creating_root_module_proxy_instance(self):
         self.assertEqual(app.name, "tests.app")
-        self.assertEqual(app.path, os.getcwd() + "/test/app")
+        self.assertEqual(app.path, normpath(os.getcwd() + "/test/app"))
 
     def test_accessing_module(self):
         self.assertEqual(app.simple.name, "tests.app.simple")
         self.assertEqual(app.simple.path,
-                         os.getcwd() + "/test/app/simple")
+                         normpath(os.getcwd() + "/test/app/simple"))
         self.assertEqual(app.simple.ctor, simple)
 
     def test_accessing_deep_module(self):
         self.assertEqual(app.services.detail.name, "tests.app.services.detail")
         self.assertEqual(app.services.detail.path,
-                         os.getcwd() + "/test/app/services/detail")
+                         normpath(os.getcwd() + "/test/app/services/detail"))
         self.assertEqual(app.services.detail.ctor, detail)
 
     def test_resolving_module_name_accroding_to_path(self):
@@ -60,7 +61,7 @@ class LocalInstanceTest(AioTestCase):
     def test_accessing_non_class_module(self):
         self.assertEqual(app.config.name, "tests.app.config")
         self.assertEqual(app.config.path,
-                         os.getcwd() + "/test/app/config")
+                         normpath(os.getcwd() + "/test/app/config"))
 
         self.assertEqual(app.config().hostname, config.hostname)
         self.assertEqual(app.config().port, config.port)

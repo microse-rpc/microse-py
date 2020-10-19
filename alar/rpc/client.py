@@ -1,12 +1,10 @@
-from websockets import WebSocketClientProtocol, connect, unix_connect
+from websockets import connect, unix_connect
 from websockets.exceptions import ConnectionClosedOK
 from typing import Callable, Any
 from alar.rpc.channel import RpcChannel
 from alar.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError
 from alar.client.proxy import ModuleProxy
 import asyncio
-import sys
-import os
 
 
 loop = asyncio.get_event_loop()
@@ -184,7 +182,7 @@ class RpcClient(RpcChannel):
             data = list(args)
 
             # If the last argument in the data is empty, do not send it.
-            if data[-1:] == None:
+            if data[-1:] is None:
                 data.pop()
 
             if self.codec == "JSON":
@@ -199,7 +197,7 @@ class RpcClient(RpcChannel):
         """
         handlers: list[Callable] = self.topics.get(topic)
 
-        if handlers == None:
+        if handlers is None:
             handlers = [handle]
             self.topics.set(topic, handlers)
         else:
@@ -210,7 +208,7 @@ class RpcClient(RpcChannel):
         Unsubscribes the handle function or all handlers from the corresponding
         topic.
         """
-        if handle == None:
+        if handle is None:
             if self.topics.has(topic):
                 self.topics.delete(topic)
                 return True
@@ -247,7 +245,7 @@ class RpcClient(RpcChannel):
         self.__flushReadyState(1)
 
     def register(self, mod: ModuleProxy):
-        if self.registry.get(mod.name) == None:
+        if self.registry.get(mod.name) is None:
             self.registry[mod.name] = mod
             singletons = mod.remoteSingletons
             singletons[self.serverId] = self.__createRemoteInstance(mod)
@@ -287,7 +285,7 @@ class RpcInstance:
         self.__readyState = 0
 
     def __getattr__(self, prop: str):
-        if self.props.get(prop) == None:
+        if self.props.get(prop) is None:
             mod = self.module
             ctor = mod.ctor
             method = getattr(ctor, prop, None)

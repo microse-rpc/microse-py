@@ -111,7 +111,7 @@ def now():
 def evalRouteId(value) -> int:
     _type = type(value)
 
-    if (value == None):
+    if value is None:
         return 0
     if _type in [bool, int, float]:
         return int(value)
@@ -121,7 +121,7 @@ def evalRouteId(value) -> int:
         return abs(hash(value.__name__))
     else:
         try:
-            abs(hash(JSON.stringify(value)))
+            return abs(hash(JSON.stringify(value)))
         except:
             return id(value)
 

@@ -1,16 +1,13 @@
 from websockets import WebSocketServer, WebSocketServerProtocol, serve, unix_serve
 from websockets.exceptions import ConnectionClosedOK
-from typing import Callable, Any, AsyncGenerator
-from urllib.parse import urlparse, parse_qs
+from typing import Any, AsyncGenerator
+from urllib.parse import parse_qs
 from alar.rpc.channel import RpcChannel
-from alar.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction
+from alar.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction
 from alar.client.proxy import ModuleProxy
 import asyncio
 import http
-import ssl
-import sys
 import os
-import pathlib
 
 
 class RpcServer(RpcChannel):
@@ -294,7 +291,7 @@ class RpcServer(RpcChannel):
                 client: WebSocketServerProtocol
                 info: dict
                 for (client, info) in self.clients():
-                    if info["isAlive"] == False:
+                    if not info["isAlive"]:
                         asyncio.create_task(
                             client.close(1001, "Slow Connection"))
                     else:
