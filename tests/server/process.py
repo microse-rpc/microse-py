@@ -4,8 +4,14 @@ from alar.rpc.server import RpcServer
 import tests.app.config as config
 import asyncio
 import os
+import sys
 import ssl
 import pathlib
+import nest_asyncio
+
+
+if sys.platform == "linux":
+    nest_asyncio.apply()
 
 
 app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
