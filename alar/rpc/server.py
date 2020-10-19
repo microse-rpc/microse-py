@@ -111,7 +111,7 @@ class RpcServer(RpcChannel):
                 await tryLifeCycleFunction(mod, "destroy", self.handleError)
 
         if self.proxyRoot:
-            self.proxyRoot.server = None
+            self.proxyRoot._server = None
             self.proxyRoot = None
 
     def register(self, mod: ModuleProxy):
