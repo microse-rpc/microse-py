@@ -1,19 +1,11 @@
 import unittest
-from alar.app import ModuleProxyApp
+from tests.base import app, config
 from tests.aio import AioTestCase
 from tests.app.simple import simple
 from tests.app.services.detail import detail
-import tests.app.config as config
+import tests.app.config as _config
 from os.path import normpath
 import os
-
-
-app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
-_config = {
-    "hostname": config.hostname,
-    "port": config.port,
-    "timeout": config.timeout
-}
 
 
 class LocalInstanceTest(AioTestCase):
@@ -63,12 +55,12 @@ class LocalInstanceTest(AioTestCase):
         self.assertEqual(app.config.path,
                          normpath(os.getcwd() + "/test/app/config"))
 
-        self.assertEqual(app.config().hostname, config.hostname)
-        self.assertEqual(app.config().port, config.port)
+        self.assertEqual(app.config().hostname, _config.hostname)
+        self.assertEqual(app.config().port, _config.port)
 
     def test_prototype_module_as_singleton(self):
         ins = app.config()
-        self.assertEqual(ins, config)
+        self.assertEqual(ins, _config)
 
     async def test_getting_result_from_local_generator(self):
         gen = app.services.detail().getOrgs()
@@ -115,8 +107,8 @@ class LocalInstanceTest(AioTestCase):
         self.assertEqual(err.args[0], msg)
 
     async def test_use_local_instance_when_server_runs_in_same_process(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
 
         server.register(app.services.detail)
         client.register(app.services.detail)

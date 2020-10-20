@@ -1,24 +1,14 @@
 import unittest
-from alar.app import ModuleProxyApp
 from alar.utils import Map
 from tests.aio import AioTestCase
-import tests.app.config as config
+from tests.base import app, config
 import asyncio
 import os
 
-
-app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
-_config = {
-    "hostname": config.hostname,
-    "port": config.port,
-    "timeout": config.timeout
-}
-
-
 class PubSubTest(AioTestCase):
     async def test_getting_all_clients(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
         clients = server.getClients()
 
         self.assertListEqual(clients, [client.id])
@@ -27,8 +17,8 @@ class PubSubTest(AioTestCase):
         await server.close()
 
     async def test_subscribing_and_publishing_topic(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
         data: str = ""
 
         def handle(msg):
@@ -47,8 +37,8 @@ class PubSubTest(AioTestCase):
         await server.close()
 
     async def test_subscribing_and_publishing_multi_topics(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
         data1 = ""
         data2 = ""
         data3 = ""
@@ -83,8 +73,8 @@ class PubSubTest(AioTestCase):
         await server.close()
 
     async def test_unsubscribing_topic_handlers(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
 
         def listener1():
             pass
@@ -109,9 +99,9 @@ class PubSubTest(AioTestCase):
         await server.close()
 
     async def test_publishing_topic_to_specified_clients(self):
-        clientConfig = _config.copy()
+        clientConfig = config.copy()
         clientConfig["id"] = "abc"
-        server = await app.serve(_config)
+        server = await app.serve(config)
         client = await app.connect(clientConfig)
         data = ""
 

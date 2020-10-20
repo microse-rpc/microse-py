@@ -1,18 +1,9 @@
 import unittest
-from alar.app import ModuleProxyApp
 from tests.aio import AioTestCase
 from tests.RpcCommon import RpcCommonTest
-import tests.app.config as config
+from tests.base import app, config
 import sys
 import os
-
-
-app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
-_config = {
-    "hostname": config.hostname,
-    "port": config.port,
-    "timeout": config.timeout
-}
 
 
 class RemoteInstanceTest(AioTestCase, RpcCommonTest):
@@ -37,8 +28,8 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         await server.close()
 
     async def test_accessing_singleton_with_dsn(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
 
         server.register(app.services.detail)
         client.register(app.services.detail)
@@ -52,8 +43,8 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         await server.close()
 
     async def test_closing_server_before_closing_client(self):
-        server = await app.serve(_config)
-        client = await app.connect(_config)
+        server = await app.serve(config)
+        client = await app.connect(config)
 
         server.register(app.services.detail)
         client.register(app.services.detail)
@@ -69,7 +60,7 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         await client.close()
 
     async def test_life_cycle(self):
-        server = await app.serve(_config, False)
+        server = await app.serve(config, False)
         server.register(app.services.detail)
         await server.open()
 

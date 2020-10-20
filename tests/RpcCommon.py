@@ -1,20 +1,12 @@
 import unittest
 from alar.client.app import ModuleProxyApp
 from tests.server.process import serve
-import tests.app.config as config
+from tests.base import config
 import asyncio
 import os
 import ssl
 import pathlib
 import websockets
-
-
-_config = {
-    "hostname": config.hostname,
-    "port": config.port,
-    "timeout": config.timeout
-}
-
 
 class RpcCommonTest:
     @property
@@ -27,7 +19,7 @@ class RpcCommonTest:
 
     async def test_serving_and_connecting_rpc_service(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
         await self.app.services.detail("").setName("Mr. Handsome")
@@ -39,10 +31,10 @@ class RpcCommonTest:
         await server.terminate()
 
     async def test_serving_and_connecting_rpc_with_secret(self):
-        __config = _config.copy()
-        __config["secret"] = "tesla"
+        _config = config.copy()
+        _config["secret"] = "tesla"
         server = await serve({"USE_SECRET": "tesla"})
-        client = await self.app.connect(__config)
+        client = await self.app.connect(_config)
 
         client.register(self.app.services.detail)
 
@@ -70,10 +62,10 @@ class RpcCommonTest:
         await server.terminate()
 
     async def test_serving_and_connecting_rpc_with_ssl(self):
-        __config = _config.copy()
-        __config["protocol"] = "wss:"
-        __config["hostname"] = "localhost"
-        clientConfig = __config.copy()
+        _config = config.copy()
+        _config["protocol"] = "wss:"
+        _config["hostname"] = "localhost"
+        clientConfig = _config.copy()
         certFile = pathlib.Path(os.getcwd() + "/tests/cert.pem")
         clientSSL = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         clientSSL.load_verify_locations(certFile)
@@ -91,10 +83,10 @@ class RpcCommonTest:
         await server.terminate()
 
     async def test_using_custom_serverId(self):
-        __config = _config.copy()
-        __config["id"] = "test-server"
+        _config = config.copy()
+        _config["id"] = "test-server"
         server = await serve({"USE_ID": "test-server"})
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -108,7 +100,7 @@ class RpcCommonTest:
 
     async def test_reconnecting_rpc_in_background(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -145,7 +137,7 @@ class RpcCommonTest:
 
     async def test_getting_result_from_remote_generator(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -170,7 +162,7 @@ class RpcCommonTest:
 
     async def test_invoking_asend_method_on_remote_generator(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -186,7 +178,7 @@ class RpcCommonTest:
 
     async def test_invoking_aclose_method_on_remote_generator(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -200,7 +192,7 @@ class RpcCommonTest:
 
     async def test_invoking_athrow_method_on_remote_generator(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -221,7 +213,7 @@ class RpcCommonTest:
 
     async def test_triggering_timeout_error(self):
         server = await serve()
-        client = await self.app.connect(_config)
+        client = await self.app.connect(config)
 
         client.register(self.app.services.detail)
 
@@ -244,7 +236,7 @@ class RpcCommonTest:
         err: Exception = None
 
         try:
-            await self.app.connect(_config)
+            await self.app.connect(config)
         except Exception as e:
             err = e
 
@@ -258,7 +250,7 @@ class RpcCommonTest:
         err: Exception = None
 
         try:
-            url = f"ws://{config.hostname}:{config.port}"
+            url = f"ws://{config['hostname']}:{config['port']}"
             await websockets.connect(url)
         except Exception as e:
             err = e
@@ -273,7 +265,7 @@ class RpcCommonTest:
         err: Exception = None
 
         try:
-            url = f"ws://{config.hostname}:{config.port}/somewhere?id=123"
+            url = f"ws://{config['hostname']}:{config['port']}/somewhere?id=123"
             await websockets.connect(url)
         except Exception as e:
             err = e
