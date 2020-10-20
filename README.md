@@ -11,7 +11,13 @@ the same fusion.
 For API reference, please check the [API documentation](./api.md),
 or the [Protocol Reference](https://github.com/hyurl/alar/blob/v7/docs/protocol.md).
 
-## How to use?
+## Install
+
+```sh
+pip install alar
+```
+
+## Peel The Onion
 
 In order to use Alar, one must create a root `ModuleProxyApp` instance, so other
 files can use it as a root namespace and access its sub-modules.
@@ -44,7 +50,7 @@ class Bootstrap:
 ```py
 # app/models/User.py
 
-class user:
+class User:
     def __init__(self, name: str):
         self.name = name
 
@@ -70,9 +76,14 @@ user = app.models.User.new("Mr. Handsome")
 print(user.getName()) # Mr. Handsome
 ```
 
+*TIP: in regular python script, calling a class as a function will create an*
+*instance, but since alar uses that signature for singletons, and*
+*`app.Bootstrap` is technically not a class, so it has its own behavior and*
+*calling style. This may seem a little weird at first, but it will get by.*
+
 ### Non-class Module
 
-If a module doesn't have a class with the same name as the file name, then this
+If a module doesn't have a class with the same name as the filename, then this
 module will be used directly when accessing to it as a singleton.
 
 ```py
@@ -87,10 +98,10 @@ config = app.config()
 print(f"{config.hostname}:{config.port}") # 127.0.0.1:80
 ```
 
-# Remote Service
+## Remote Service
 
-Alar allows user to easily serve a module remotely, whether in another
-process or in another machine.
+RPC is the central part of alar engine, which allows user to serve a module
+remotely, whether in another process or in another machine.
 
 ### Example
 
@@ -157,8 +168,8 @@ asyncio.get_event_loop().run_until_complete(connect())
 
 ## Generator Support
 
-When in the need to transfer large data, generator functions could be a great
-help, unlike general functions, which may block network traffic when
+When in the need of transferring large data, generator functions could be a
+great help, unlike general functions, which may block network traffic when
 transmitting large data since they send the data as a whole, generator functions,
 on the other hand, will transfer the data piece by piece.
 
@@ -174,7 +185,7 @@ class User:
         # ...
     }
 
-    async def getFriends(self, name: str):
+    async def getFriendsOf(self, name: str):
         friends = self.__friends.get(name)
 
         if friends:
@@ -186,7 +197,7 @@ class User:
 # index.py
 
 async def handle():
-    generator = app.services.User("route").getFriends("David")
+    generator = app.services.User("route").getFriendsOf("David")
 
     async for name in generator:
         print(name)
@@ -195,7 +206,7 @@ async def handle():
         # ...
 
     # The following usage gets the same result.
-    generator2 = app.services.User("route").getFriends("David")
+    generator2 = app.services.User("route").getFriendsOf("David")
 
     while True:
         try:
@@ -215,7 +226,7 @@ asyncio.get_event_loop().run_until_complete(handle())
 
 ## Life Cycle Support
 
-Alar provided a new way to support life cycle functions, it will be used to
+Alar provides a new way to support life cycle functions, it will be used to
 perform asynchronous initiation and destruction, for example, connecting to a
 database when starting the services and release the connection when the server
 shuts down.
