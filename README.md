@@ -8,7 +8,7 @@ NOTE: Alar is originally designed for Node.js,  this python implementation is
 primarily meant to allow python programs and Node.js programs work together in
 the same fusion.
 
-For API reference, please check the [API documentation](./docs/api.md),
+For API reference, please check the [API documentation](./api.md),
 or the [Protocol Reference](https://github.com/hyurl/alar/blob/v7/docs/protocol.md).
 
 ## How to use?
@@ -272,4 +272,4 @@ async def handle():
 asyncio.get_event_loop().run_until_complete(handle())
 ```
 
-For more details, please check the [API documentation](./docs/api.md).
+For more details, please check the [API documentation](./api.md).
