@@ -131,13 +131,13 @@ inherits all `ChannelOptions`, and with the following keys:
 - `timeout: int` Used to force a timeout error when an RPC request fires and
     doesn't get a response after a long time, default value is `5000`ms.
 - `pingTimeout: int` Used to set the maximum delay of the connection, the client
-    will constantly check the availability of the connection. If there are too
-    much delay between the peers, the connection will be automatically released
-    and a new connection will be created, default value is `5000`ms.
+    will constantly check the availability of the connection, default value is
+    `5000`ms. If there are too much delay between the peers, the connection will
+    be automatically released and a new connection will be created.
 - `pintInterval: int` Used to set a internal timer for ping function to ensure
-    the connection is alive. If the server doesn't response after sending a ping
-    in time, the client will consider the server is down and will destroy and
-    retry the connection.
+    the connection is alive, default value is `5000`ms. If the server doesn't
+    response after sending a ping in time, the client will consider the server
+    is down and will destroy and retry the connection.
 
 ## Pub-Sub Model between the server and clients
 
