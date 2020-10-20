@@ -24,7 +24,6 @@ class RpcChannel:
         self.secret = ""
         self.codec = "JSON"
         self.ssl = None
-        self.maxDelay = 5000
         self.onError(print_err)
 
         if type(options) == dict:
@@ -36,7 +35,6 @@ class RpcChannel:
             self.secret = options.get("secret") or self.secret
             self.codec = options.get("codec") or self.codec
             self.ssl = options.get("ssl") or self.ssl
-            self.maxDelay = options.get("maxDelay") or self.maxDelay
         elif type(options) == int:
             self.protocol = "ws"
             self.hostname = str(host)

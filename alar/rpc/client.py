@@ -1,6 +1,6 @@
 from websockets import connect, unix_connect
 from websockets.exceptions import ConnectionClosedOK
-from typing import Callable, Any
+from typing import Callable, Any, List
 from alar.rpc.channel import RpcChannel
 from alar.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError
 from alar.client.proxy import ModuleProxy
@@ -17,6 +17,7 @@ class RpcClient(RpcChannel):
     def __init__(self, options, host=""):
         RpcChannel.__init__(self, options, host)
         self.timeout = 5000
+        self.pingTimeout = 5000
         self.pingInterval = 5000
         self.serverId = ""
         self.state = "initiated"
@@ -29,6 +30,7 @@ class RpcClient(RpcChannel):
         if type(options) == dict:
             self.timeout = options.get("timeout") or self.timeout
             self.serverId = options.get("serverId") or self.serverId
+            self.pingTimeout = options.get("pingTimeout") or self.pingTimeout
             self.pingInterval = options.get(
                 "pingInterval") or self.pingInterval
 
@@ -37,14 +39,23 @@ class RpcClient(RpcChannel):
 
     @property
     def connecting(self):
+        """
+        Whether the channel is in connecting state.
+        """
         return self.state == "connecting"
 
     @property
     def connected(self):
+        """
+        Whether the channel is connected.
+        """
         return self.state == "connected"
 
     @property
     def closed(self):
+        """
+        Whether the channel is closed.
+        """
         return self.state == "closed"
 
     async def open(self):
@@ -55,6 +66,8 @@ class RpcClient(RpcChannel):
                             self.serverId + "after closing the channel")
 
         self.state = "connecting"
+        ping_timeout = self.pingTimeout / 1000
+        ping_interval = self.pingInterval / 1000
         url: str
 
         if self.protocol == "ws+unix:":
@@ -64,8 +77,8 @@ class RpcClient(RpcChannel):
                 url += "&secret=" + self.secret
 
             self.socket = await unix_connect(self.pathname, url, ssl=self.ssl,
-                                             ping_interval=self.pingInterval,
-                                             ping_timeout=self.maxDelay)
+                                             ping_interval=ping_interval,
+                                             ping_timeout=ping_timeout)
         else:
             url = self.protocol + "//" + self.hostname + \
                 ":" + str(self.port) + self.pathname + "?id=" + self.id
@@ -74,8 +87,8 @@ class RpcClient(RpcChannel):
                 url += "&secret=" + self.secret
 
             self.socket = await connect(url, ssl=self.ssl,
-                                        ping_interval=self.pingInterval,
-                                        ping_timeout=self.maxDelay)
+                                        ping_interval=ping_interval,
+                                        ping_timeout=ping_timeout)
 
         # Accept the first message for handshake.
         msg = await self.socket.recv()
@@ -90,6 +103,8 @@ class RpcClient(RpcChannel):
             self.__updateServerId(str(res[1]))
             asyncio.create_task(self.__listenMessage())
             self.resume()
+
+        return self
 
     def __updateServerId(self, serverId: str):
         if serverId != self.serverId:
@@ -164,12 +179,16 @@ class RpcClient(RpcChannel):
         elif event == ChannelEvents.PUBLISH:
             # If receives the PUBLISH event, call all the handlers
             # bound to the corresponding topic.
-            handlers: list[Callable] = self.topics.get(str(taskId))
+            handlers: List[Callable] = self.topics.get(str(taskId))
 
             if handlers:
                 for handle in handlers:
                     try:
-                        handle(data)
+                        res = handle(data)
+
+                        if asyncio.iscoroutine(res) or asyncio.isfuture(res):
+                            asyncio.create_task(res)
+
                     except Exception as err:
                         self.handleError(err)
 
@@ -209,13 +228,15 @@ class RpcClient(RpcChannel):
         """
         Subscribes a handle function to the corresponding topic.
         """
-        handlers: list[Callable] = self.topics.get(topic)
+        handlers: List[Callable] = self.topics.get(topic)
 
         if handlers is None:
             handlers = [handle]
             self.topics.set(topic, handlers)
         else:
             handlers.append(handle)
+
+        return self
 
     def unsubscribe(self, topic: str, handle: Callable = None):
         """
@@ -227,7 +248,7 @@ class RpcClient(RpcChannel):
                 self.topics.delete(topic)
                 return True
         else:
-            handlers: list[Callable] = self.topics.get(topic)
+            handlers: List[Callable] = self.topics.get(topic)
 
             if handlers:
                 try:
@@ -268,6 +289,8 @@ class RpcClient(RpcChannel):
                 setattr(singletons[self.serverId], "__readyState", 1)
             else:
                 setattr(singletons[self.serverId], "__readyState", 0)
+
+        return self
 
     def __flushReadyState(self, state: int):
         for name in self.registry:

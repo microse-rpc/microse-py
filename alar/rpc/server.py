@@ -1,6 +1,6 @@
 from websockets import WebSocketServer, WebSocketServerProtocol as WebSocket, serve, unix_serve
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, List
 from urllib.parse import parse_qs
 from alar.rpc.channel import RpcChannel
 from alar.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction
@@ -64,10 +64,11 @@ class RpcServer(RpcChannel):
                                    ssl=self.ssl)
 
         self.wsServer = wsServer
+        return self
 
     async def __processRequest(self, path: str, headers):
         """
-        Verify authentication on the 'upgrade' stage.
+        Verify authentication on the `upgrade` stage.
         """
         parts = path.split("?")
         _pathname = parts[0]
@@ -117,8 +118,13 @@ class RpcServer(RpcChannel):
 
     def register(self, mod: ModuleProxy):
         self.registry[mod.name] = mod
+        return self
 
-    def publish(self, topic: str, data: Any, clients=[]):
+    def publish(self, topic: str, data: Any, clients: List[str]=[]) -> bool:
+        """
+        Publishes data to the corresponding topic, if `clients` are provided,
+        the topic will only be published to them.
+        """
         sent = False
 
         for (socket, info) in self.clients:
@@ -127,8 +133,12 @@ class RpcServer(RpcChannel):
 
         return sent
 
-    def getClients(self) -> list:
-        clients = []
+    def getClients(self):
+        """
+        Returns all IDs of clients that connected to the server.
+        """
+
+        clients: List[str] = []
 
         for info in self.clients.values():
             clients.append(info["id"])

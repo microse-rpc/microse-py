@@ -5,6 +5,10 @@ import os
 
 
 class ModuleProxyApp(ModuleProxy):
+    """
+    Creates a root module proxy.
+    """
+
     def __init__(self, name: str, path: str):
         ModuleProxy.__init__(self, name, path, {}, self)
         self.path = os.path.normpath(path)

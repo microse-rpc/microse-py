@@ -6,6 +6,10 @@ import os
 
 
 class ModuleProxy:
+    """
+    The base class used to create proxy when accessing a module.
+    """
+
     def __init__(self, name: str, path: str, singletons: dict, root):
         self.name = name
         self.path = path
@@ -17,10 +21,17 @@ class ModuleProxy:
 
     @property
     def exports(self):
+        """
+        The original export of the module.
+        """
         return import_module(self.name)
 
     @property
     def proto(self) -> Any:
+        """
+        If there is a class via the same name as the filename, this property
+        returns the class, otherwise it returns the module itself.
+        """
         exports = self.exports
         _name = self.name.split(".")[-1]
         _proto = getattr(exports, _name, None)
@@ -35,6 +46,10 @@ class ModuleProxy:
 
     @property
     def ctor(self) -> Callable:
+        """
+        If there is a class via the same name as the filename, this property
+        returns the class, otherwise it returns `None`.
+        """
         proto = self.proto
 
         if isclass(proto):
@@ -91,12 +106,17 @@ class ModuleProxy:
             id = evalRouteId(route)
             return singletons[id % count]  # return one of the singletons.
 
-    def fallbackToLocal(self, enable=None):
+    def fallbackToLocal(self, enable: bool = None):
+        """
+        Allows the services falling to local instance if the remote instance
+        isn't available.
+        """
         if enable is None:
             return self.__fallbackToLocal
         else:
             self.__fallbackToLocal = enable
 
+    # If the proxy is called as a function, reference it to the remote instance.
     __call__ = instance
 
     def __getattr__(self, name: str):
