@@ -14,30 +14,15 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         if sys.platform == "win32":
             return
 
-        sockPath = os.getcwd() + "/alar.sock"
+        sockPath = os.getcwd() + "/test.sock"
         server = await app.serve(sockPath)
         client = await app.connect(sockPath)
-        server.register(app.services.detail)
-        client.register(app.services.detail)
+        await server.register(app.services.detail)
+        await client.register(app.services.detail)
 
-        await app.services.detail("").setName("Mr. Handsome")
-        res = await app.services.detail("").getName()
+        await app.services.detail.setName("Mr. Handsome")
+        res = await app.services.detail.getName()
         self.assertEqual(res, "Mr. Handsome")
-
-        await client.close()
-        await server.close()
-
-    async def test_accessing_singleton_with_dsn(self):
-        server = await app.serve(config)
-        client = await app.connect(config)
-
-        server.register(app.services.detail)
-        client.register(app.services.detail)
-
-        self.assertEqual(
-            app.services.detail(server.dsn),
-            app.services.detail.remoteSingletons[server.dsn]
-        )
 
         await client.close()
         await server.close()
@@ -46,10 +31,10 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         server = await app.serve(config)
         client = await app.connect(config)
 
-        server.register(app.services.detail)
-        client.register(app.services.detail)
+        await server.register(app.services.detail)
+        await client.register(app.services.detail)
 
-        app.services.detail("").getOrgs()
+        app.services.detail.getOrgs()
         self.assertEqual(server.clients.size, 1)
         self.assertEqual(server.tasks.size, 1)
 
@@ -60,20 +45,28 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         await client.close()
 
     async def test_life_cycle(self):
-        server = await app.serve(config, False)
-        server.register(app.services.detail)
-        await server.open()
+        async def init(self):
+            await self.setName("Mr. Handsome")
 
-        res = await app.services.detail().getName()
+        async def destroy(self):
+            await self.setName("Mr. World")
+
+        setattr(app.services.detail.ctor, "init", init)
+        setattr(app.services.detail.ctor, "destroy", destroy)
+
+        server = await app.serve(config)
+        await server.register(app.services.detail)
+
+        res = await app.services.detail.getName()
         self.assertEqual(res, "Mr. Handsome")
 
         await server.close()
 
-        res2 = await app.services.detail().getName()
+        res2 = await app.services.detail.getName()
         self.assertEqual(res2, "Mr. World")
 
-        # Recover readyState of the service since this test maybe started early.
-        delattr(app.services.detail(), "__readyState")
+        delattr(app.services.detail.ctor, "init")
+        delattr(app.services.detail.ctor, "destroy")
 
 
 if __name__ == "__main__":

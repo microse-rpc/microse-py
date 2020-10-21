@@ -1,6 +1,6 @@
 from multiprocessing import Process, Manager
-from alar.app import ModuleProxyApp
-from alar.rpc.server import RpcServer
+from microse.app import ModuleProxyApp
+from microse.rpc.server import RpcServer
 import tests.app.config as config
 import asyncio
 import os
@@ -50,7 +50,7 @@ async def __serve(state: dict, env: dict):
     else:
         server = await app.serve(_config)
 
-    server.register(app.services.detail)
+    await server.register(app.services.detail)
 
     state["ready"] = True
 

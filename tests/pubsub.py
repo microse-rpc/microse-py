@@ -1,5 +1,5 @@
 import unittest
-from alar.utils import Map
+from microse.utils import Map
 from tests.aio import AioTestCase
 from tests.base import app, config
 import asyncio

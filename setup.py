@@ -4,17 +4,17 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="alar",
-    version="0.7.0",
+    name="microse",
+    version="1.0.0",
     author="A-yon Lee",
     author_email="i@hyurl.com",
-    description="The python version of alar engine.",
+    description="Micro Remote Object Serving Engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/hyurl/alar-py",
+    url="https://github.com/hyurl/microse-py",
     python_requires='>=3.6',
     packages=[
-        "alar"
+        "microse"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

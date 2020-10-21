@@ -1,6 +1,6 @@
-from alar.proxy import ModuleProxy
-from alar.rpc.server import RpcServer
-from alar.rpc.client import RpcClient
+from microse.proxy import ModuleProxy
+from microse.rpc.server import RpcServer
+from microse.rpc.client import RpcClient
 import os
 
 
@@ -10,9 +10,12 @@ class ModuleProxyApp(ModuleProxy):
     """
 
     def __init__(self, name: str, path: str):
-        ModuleProxy.__init__(self, name, path, {}, self)
         self.path = os.path.normpath(path)
         self._server = None
+        self._cache = {}
+        self._singletons = {}
+        self._remoteSingletons = {}
+        ModuleProxy.__init__(self, name, path, self)
 
     async def serve(self, options, immediate=True):
         """
@@ -25,7 +28,7 @@ class ModuleProxyApp(ModuleProxy):
         """
         self._server = RpcServer(options)
         self._server.proxyRoot = self
-        immediate and await self._server.open(False)
+        immediate and await self._server.open()
         return self._server
 
     async def connect(self, options, immediate=True):

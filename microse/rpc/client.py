@@ -1,9 +1,9 @@
 from websockets import connect, unix_connect
 from websockets.exceptions import ConnectionClosedOK
 from typing import Callable, Any, List
-from alar.rpc.channel import RpcChannel
-from alar.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError
-from alar.client.proxy import ModuleProxy
+from microse.rpc.channel import RpcChannel
+from microse.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, getInstance
+from microse.client.proxy import ModuleProxy
 import asyncio
 
 
@@ -104,13 +104,11 @@ class RpcClient(RpcChannel):
             asyncio.create_task(self.__listenMessage())
             self.resume()
 
-        return self
-
     def __updateServerId(self, serverId: str):
         if serverId != self.serverId:
             for name in self.registry:
                 mod: ModuleProxy = self.registry[name]
-                singletons = mod.remoteSingletons
+                singletons = mod._root._remoteSingletons
 
                 if singletons.get(self.serverId):
                     singletons[serverId] = singletons[self.serverId]
@@ -267,6 +265,13 @@ class RpcClient(RpcChannel):
         if self.socket:
             await self.socket.close()
 
+        for name in self.registry:
+            mod = self.registry[name]
+            singletons: dict = mod._root._remoteSingletons.get(name)
+
+            if singletons and singletons.get(self.serverId):
+                singletons.pop(self.serverId)
+
     def pause(self):
         """
         Pauses the channel and redirect traffic to other channels.
@@ -279,10 +284,14 @@ class RpcClient(RpcChannel):
         """
         self.__flushReadyState(1)
 
-    def register(self, mod: ModuleProxy):
+    async def register(self, mod: ModuleProxy):
         if self.registry.get(mod.name) is None:
             self.registry[mod.name] = mod
-            singletons = mod.remoteSingletons
+            singletons = mod._root._remoteSingletons.get(mod.name)
+
+            if not singletons:
+                singletons = mod._root._remoteSingletons[mod.name] = {}
+
             singletons[self.serverId] = self.__createRemoteInstance(mod)
 
             if self.connected:
@@ -295,8 +304,10 @@ class RpcClient(RpcChannel):
     def __flushReadyState(self, state: int):
         for name in self.registry:
             mod: ModuleProxy = self.registry.get(name)
-            singleton = mod.remoteSingletons[self.serverId]
-            setattr(singleton, "__readyState", state)
+            singletons = mod._root._remoteSingletons.get(mod.name)
+
+            if singletons and singletons.get(self.serverId):
+                setattr(singletons.get(self.serverId), "__readyState", state)
 
     def __createRemoteInstance(self, mod: ModuleProxy):
         return RpcInstance(mod, self)
@@ -320,17 +331,16 @@ class RpcInstance:
 
             def bound(*args):
                 if ctor:
-                    root: ModuleProxy = getattr(mod, "root", None)
-                    server = root and getattr(root, "_server", None)
+                    server: RpcChannel = mod._root and mod._root._server
 
                     # If the RPC server and the RPC client runs in the same
                     # process, then directly call the local instance to prevent
                     # unnecessary network traffics.
                     if server and server.id == self.client.serverId:
-                        ins = mod.instance()
+                        ins = getInstance(mod._root, mod.name)
                         state = getattr(ins, "__readyState", -1)
 
-                        if state == 0 and not mod.fallbackToLocal():
+                        if state == 0:
                             throwUnavailableError(mod.name)
                         else:
                             return getattr(ins, prop)(*args)
@@ -338,11 +348,7 @@ class RpcInstance:
                     # If the RPC channel is not available, call the local
                     # instance and wrap it asynchronous.
                     if self.client.state != "connected":
-                        if mod.fallbackToLocal():
-                            ins = mod.instance()
-                            return getattr(ins, prop)(*args)
-                        else:
-                            throwUnavailableError(mod.name)
+                        throwUnavailableError(mod.name)
 
                 return AwaitableGenerator(self.client,
                                           mod.name, prop, *args)

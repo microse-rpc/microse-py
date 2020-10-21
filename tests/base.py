@@ -1,4 +1,4 @@
-from alar.app import ModuleProxyApp
+from microse.app import ModuleProxyApp
 import tests.app.config as _config
 import os
 

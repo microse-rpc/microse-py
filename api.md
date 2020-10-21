@@ -5,18 +5,15 @@
 This class used to create proxy when accessing a module, it has the following
 properties and methods:
 
-- `exports: ModuleType` The original export of the module.
+- `name: str` The name (with namespace) of the module.
+- `path: str` The path (without extension) of the module.
+- `exports: ModuleType` The very exports object of the module.
 - `proto: typing.Any` If there is a class via the same name as the filename,
     this property returns the class, otherwise it returns the module itself.
 - `ctor: typing.Callable` If there is a class via the same name as the filename,
     this property returns the class, otherwise it returns `None`.
 - `new(self, *args, **kargs)` Creates a new instance of the module.
-- `instance(self, route=local)` Gets the local singleton or a remote instance of
-    the module, if connected to one or more remote instances, the module proxy
-    will automatically calculate the `route` and direct the traffic to the
-    corresponding remote instance.
-- `__call__ = instance` If the proxy is called as a function, reference it to
-    the remote instance.
+
 
 This class is considered abstract, and shall not be used in user code.
 
@@ -36,9 +33,10 @@ and methods:
     filename, or provide a dict for detailed options.
     - `connect(url: str, immediate = True)`
     - `connect(url: dict, immediate = True)`
+- `resolve(self, path: str) -> str` Resolves the given path to a module name.
 
-An alar application must use this class to create a root proxy in order to use
-its features.
+An microse application must use this class to create a root proxy in order to
+use its features.
 
 #### Serve and Connect to IPC
 
@@ -50,6 +48,8 @@ example:
 server = await app.serve("/tmp/test.sock");
 client = await app.connect("/tmp/test.sock");
 ```
+
+**NOTE: only the `connect()` method is available for the standalone client.**
 
 ## RpcChannel
 

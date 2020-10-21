@@ -39,31 +39,25 @@ class LocalInstanceTest(AioTestCase):
         self.assertEqual(await test.getName(), test.name)
 
     async def test_getting_singleton_instance(self):
-        await app.services.detail().setName("Mr. Handsome")
-        self.assertTrue(isinstance(app.services.detail(), detail))
-        self.assertEqual(app.services.detail().name, "Mr. Handsome")
-        await app.services.detail().setName("Mr. World")
-        self.assertEqual(await app.services.detail().getName(), "Mr. World")
+        await app.services.detail.setName("Mr. Handsome")
+        self.assertEqual(await app.services.detail.getName(), "Mr. Handsome")
+        await app.services.detail.setName("Mr. World")
+        self.assertEqual(await app.services.detail.getName(), "Mr. World")
 
     def test_isinstance_check(self):
         test: detail = app.services.detail.new("A-yon Lee")
         self.assertTrue(isinstance(test, app.services.detail))
-        self.assertTrue(isinstance(app.services.detail(), app.services.detail))
 
     def test_accessing_non_class_module(self):
         self.assertEqual(app.config.name, "tests.app.config")
         self.assertEqual(app.config.path,
                          normpath(os.getcwd() + "/test/app/config"))
 
-        self.assertEqual(app.config().hostname, _config.hostname)
-        self.assertEqual(app.config().port, _config.port)
-
-    def test_prototype_module_as_singleton(self):
-        ins = app.config()
-        self.assertEqual(ins, _config)
+        self.assertEqual(app.config.exports.hostname, _config.hostname)
+        self.assertEqual(app.config.exports.port, _config.port)
 
     async def test_getting_result_from_local_generator(self):
-        gen = app.services.detail().getOrgs()
+        gen = app.services.detail.getOrgs()
         expected = ["Mozilla", "GitHub", "Linux"]
         result = []
         err: Exception
@@ -80,7 +74,7 @@ class LocalInstanceTest(AioTestCase):
         self.assertListEqual(result, expected)
 
     async def test_invoking_asend_method_on_local_generator(self):
-        gen = app.services.detail().repeatAfterMe()
+        gen = app.services.detail.repeatAfterMe()
         result = await gen.asend(None)
         result1 = await gen.asend("Google")
 
@@ -88,13 +82,13 @@ class LocalInstanceTest(AioTestCase):
         self.assertEqual(result1, "Google")
 
     async def test_invoking_aclose_method_on_local_generator(self):
-        gen = app.services.detail().repeatAfterMe()
+        gen = app.services.detail.repeatAfterMe()
         result = await gen.aclose()
 
         self.assertEqual(result, None)
 
     async def test_invoking_athrow_method_on_local_generator(self):
-        gen = app.services.detail().repeatAfterMe()
+        gen = app.services.detail.repeatAfterMe()
         msg = "test athrow method"
         err: Exception
 
@@ -110,11 +104,11 @@ class LocalInstanceTest(AioTestCase):
         server = await app.serve(config)
         client = await app.connect(config)
 
-        server.register(app.services.detail)
-        client.register(app.services.detail)
+        await server.register(app.services.detail)
+        await client.register(app.services.detail)
 
         data = {}
-        res = await app.services.detail("").setAndGet(data)
+        res = await app.services.detail.setAndGet(data)
 
         self.assertIs(res, data)
 

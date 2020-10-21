@@ -165,8 +165,19 @@ def parseException(data):
     return exc
 
 
+def getInstance(app, modName: str):
+    if not app._singletons.get(modName):
+        mod = app._cache.get(modName)
+        if mod:
+            app._singletons[modName] = mod.new()
+        else:
+            throwUnavailableError(modName)
+
+    return app._singletons[modName]
+
+
 async def tryLifeCycleFunction(mod, fn: str, errorHandle: Callable):
-    ins = mod()
+    ins = getInstance(mod._root, mod.name)
 
     if fn == "init":
         if hasattr(ins, "init") and callable(ins.init):

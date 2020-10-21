@@ -1,10 +1,14 @@
-from alar.client.proxy import ModuleProxy
-from alar.rpc.client import RpcClient
+from microse.client.proxy import ModuleProxy
+from microse.rpc.client import RpcClient
 
 
 class ModuleProxyApp(ModuleProxy):
     def __init__(self, name: str):
-        ModuleProxy.__init__(self, name, None)
+        self._server = None
+        self._cache = {}
+        self._singletons = {}
+        self._remoteSingletons = {}
+        ModuleProxy.__init__(self, name, self)
 
     async def connect(self, options, immediate=True):
         """

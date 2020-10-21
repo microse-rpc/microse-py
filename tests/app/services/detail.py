@@ -9,12 +9,6 @@ class detail:
         self.propFn = fn
         self.name = name
 
-    async def init(self):
-        await self.setName("Mr. Handsome")
-
-    async def destroy(self):
-        await self.setName("Mr. World")
-
     async def setName(self, name: str):
         self.name = name
 

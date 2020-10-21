@@ -112,5 +112,5 @@ class RpcChannel:
     def close(self) -> Future:
         pass
 
-    def register(self):
+    def register(self) -> Future:
         pass

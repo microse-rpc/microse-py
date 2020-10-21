@@ -1,32 +1,28 @@
-# Alar
+# Microse
 
-Alar (stands for *Auto-Load And Remote*) is a light-weight engine that provides
-applications the ability to auto-load modules and serve them remotely as RPC
-services.
-
-NOTE: Alar is originally designed for Node.js,  this python implementation is
-primarily meant to allow python programs and Node.js programs work together in
-the same fusion.
+Microse (stands for *Micro Remote Object Serving Engine*) is a light-weight
+engine that provides applications the ability to auto-load modules and serve
+them remotely as RPC services.
 
 For API reference, please check the [API documentation](./api.md),
-or the [Protocol Reference](https://github.com/hyurl/alar/blob/v7/docs/protocol.md).
+or the [Protocol Reference](https://github.com/hyurl/microse/blob/master/docs/protocol.md).
 
 ## Install
 
 ```sh
-pip install alar
+pip install microse
 ```
 
 ## Peel The Onion
 
-In order to use Alar, one must create a root `ModuleProxyApp` instance, so other
-files can use it as a root namespace and access its sub-modules.
+In order to use microse, one must create a root `ModuleProxyApp` instance, so
+other files can use it as a root namespace and access its sub-modules.
 
 ### Example
 
 ```py
 # app/app.py
-from alar.app import ModuleProxyApp
+from microse.app import ModuleProxyApp
 import os
 
 app = ModuleProxyApp("app", os.getcwd() + "/app")
@@ -34,9 +30,6 @@ app = ModuleProxyApp("app", os.getcwd() + "/app")
 
 In other files, just define a class with the same name as the filename, so that
 another file can access it directly via the `app` namespace.
-
-(NOTE: Alar offers first priority of the same-name class, if a module doesn't 
-have a same-name class, Alar will try to load all identifiers instead.)
 
 ```py
 # Be aware that the class name must correspond to the filename.
@@ -67,8 +60,8 @@ And other files can access to the modules via the namespace:
 # index.py
 from app import app
 
-# Calling the module as a function will link to the singleton of the module.
-app.Bootstrap().init()
+#  Accessing the module as a singleton and call its function directly.
+app.Bootstrap.init()
 
 # Using `new()` method on the module to create a new instance.
 user = app.models.User.new("Mr. Handsome")
@@ -77,9 +70,9 @@ print(user.getName()) # Mr. Handsome
 ```
 
 *TIP: in regular python script, calling a class as a function will create an*
-*instance, but since alar uses that signature for singletons, and*
-*`app.Bootstrap` is technically not a class, so it has its own behavior and*
-*calling style. This may seem a little weird at first, but it will get by.*
+*instance, but since microse uses this signature for function calls, so to*
+*create instance, we should use the `new` method instead. This may seem a little*
+*odd at first, but it will get by.*
 
 ### Non-class Module
 
@@ -90,17 +83,24 @@ module will be used directly when accessing to it as a singleton.
 # app/config.py
 hostname = "127.0.0.1"
 port = 80
+
+async def get(key: str):
+    # some async operations...
+    return value
 ```
 
 ```py
-config = app.config()
-
+# Use `exports` property to access the module original exports:
+config = app.config.exports
 print(f"{config.hostname}:{config.port}") # 127.0.0.1:80
+
+# Functions can be called directly:
+print(await app.config.get("someKey"))
 ```
 
 ## Remote Service
 
-RPC is the central part of alar engine, which allows user to serve a module
+RPC is the central part of microse engine, which allows user to serve a module
 remotely, whether in another process or in another machine.
 
 ### Example
@@ -132,10 +132,10 @@ from app import app
 import asyncio
 
 async def serve():
-    service = await app.serve("ws://localhost:4000")
-    service.register(app.services.User)
+    channel = await app.serve("ws://localhost:4000")
+    await channel.register(app.services.User)
 
-    print("Service started!")
+    print("Server started!")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(serve())
@@ -154,17 +154,24 @@ from app import app
 import asyncio
 
 async def connect():
-    service = await app.connect("ws://localhost:4000")
-    service.register(app.services.User)
+    channel = await app.connect("ws://localhost:4000")
+    await channel.register(app.services.User)
 
     # Accessing the instance in local style but actually calling remote.
-    # The **route** argument for the module must be explicit.
-    fullName = await app.services.User("route").getFullName("David")
+    fullName = await app.services.User.getFullName("David")
 
     print(fullName) # David Wood
 
 asyncio.get_event_loop().run_until_complete(connect())
 ```
+
+NOTE: to ship a service in multiple server nodes, just create and connect to
+multiple channels, and register the service to each of them, when calling remote
+functions, microse will automatically calculate routes and redirect traffics to
+them.
+
+NOTE: RPC calling will serialize all input and output data, those data that
+cannot be serialized will be lost during transmission.
 
 ## Generator Support
 
@@ -197,7 +204,7 @@ class User:
 # index.py
 
 async def handle():
-    generator = app.services.User("route").getFriendsOf("David")
+    generator = app.services.User.getFriendsOf("David")
 
     async for name in generator:
         print(name)
@@ -206,7 +213,7 @@ async def handle():
         # ...
 
     # The following usage gets the same result.
-    generator2 = app.services.User("route").getFriendsOf("David")
+    generator2 = app.services.User.getFriendsOf("David")
 
     while True:
         try:
@@ -226,15 +233,11 @@ asyncio.get_event_loop().run_until_complete(handle())
 
 ## Life Cycle Support
 
-Alar provides a new way to support life cycle functions, it will be used to
-perform asynchronous initiation and destruction, for example, connecting to a
-database when starting the services and release the connection when the server
-shuts down.
-
-To enable this feature, first calling `ModuleProxyApp.serve()` method to create
-an RPC server that is not yet served immediately by passing the second argument
-`false`, and after all preparations are finished, calling the `RpcServer.open()`
-method to open the channel and initiate bound modules.
+Microse provides a way to support life cycle functions, if a service class has
+an `init()` method, it will be used for asynchronous initiation, and if the
+class has a `destroy()` method, it will be used for asynchronous destruction.
+With these feature, the service class can, for example, connect to a database
+when starting the server and release the connection when the server shuts down.
 
 ```py
 # app/services/User.py
@@ -250,35 +253,23 @@ class user:
         # ...
 ```
 
-```py
-async def serve():
-    services = app.serve(config, False) # pass False to serve()
-    services.register(app.services.User)
-
-    # other preparations...
-
-    await service.open()
-
-asyncio.get_event_loop().run_until_complete(serve())
-```
-
 ## Standalone Client
 
-Alar also provides a way to be running as a standalone client outside the main
-program codebase, Instead of importing from the main module, we import the 
-`alar.client.app` sub-module, which is designed to be run in standalone python
-programs. The client will not actually load any modules since there are no such
-files, instead, it just map the module names so you can use them as usual. To
-create a standalone client, use the following code:
+Microse also provides a way to be running as a standalone client outside the
+main program codebase, Instead of importing from the main module, we import the 
+`microse.client.app` sub-module, which is designed to be run in standalone
+python programs. The client will not actually load any modules since there are
+no such files, instead, it just map the module names so you can use them as
+usual. To create a standalone client, use the following code:
 
 ```py
-from alar.client.app import ModuleProxyApp
+from microse.client.app import ModuleProxyApp
 
 app = ModuleProxyApp("app") # no path needed
 
 async def handle():
-    client = await app.connect("ws://localhost:4000")
-    client.register(app.services.User)
+    channel = await app.connect("ws://localhost:4000")
+    await channel.register(app.services.User)
 
 asyncio.get_event_loop().run_until_complete(handle())
 ```

@@ -1,5 +1,5 @@
 import unittest
-from alar.client.app import ModuleProxyApp
+from microse.client.app import ModuleProxyApp
 from tests.server.process import serve
 from tests.base import config
 import asyncio
@@ -21,9 +21,9 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
-        await self.app.services.detail("").setName("Mr. Handsome")
-        res = await self.app.services.detail("").getName()
+        await client.register(self.app.services.detail)
+        await self.app.services.detail.setName("Mr. Handsome")
+        res = await self.app.services.detail.getName()
 
         self.utils.assertEqual(res, "Mr. Handsome")
 
@@ -36,10 +36,10 @@ class RpcCommonTest:
         server = await serve({"USE_SECRET": "tesla"})
         client = await self.app.connect(_config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        await self.app.services.detail("").setName("Mr. Handsome")
-        res = await self.app.services.detail("").getName()
+        await self.app.services.detail.setName("Mr. Handsome")
+        res = await self.app.services.detail.getName()
         self.utils.assertEqual(res, "Mr. Handsome")
 
         await client.close()
@@ -52,10 +52,10 @@ class RpcCommonTest:
         server = await serve({"USE_URL": url})
         client = await self.app.connect(url)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        await self.app.services.detail("").setName("Mr. Handsome")
-        res = await self.app.services.detail("").getName()
+        await self.app.services.detail.setName("Mr. Handsome")
+        res = await self.app.services.detail.getName()
         self.utils.assertEqual(res, "Mr. Handsome")
 
         await client.close()
@@ -73,27 +73,11 @@ class RpcCommonTest:
         server = await serve({"USE_WSS": "true"})
         client = await self.app.connect(clientConfig)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        await self.app.services.detail("").setName("Mr. Handsome")
-        res = await self.app.services.detail("").getName()
+        await self.app.services.detail.setName("Mr. Handsome")
+        res = await self.app.services.detail.getName()
         self.assertEqual(res, "Mr. Handsome")
-
-        await client.close()
-        await server.terminate()
-
-    async def test_using_custom_serverId(self):
-        _config = config.copy()
-        _config["id"] = "test-server"
-        server = await serve({"USE_ID": "test-server"})
-        client = await self.app.connect(config)
-
-        client.register(self.app.services.detail)
-
-        self.utils.assertEqual(
-            self.app.services.detail("test-server"),
-            self.app.services.detail.remoteSingletons["test-server"]
-        )
 
         await client.close()
         await server.terminate()
@@ -102,7 +86,7 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
         await server.terminate()
         await asyncio.sleep(0.1)
@@ -116,18 +100,23 @@ class RpcCommonTest:
         while not client.connected:
             await asyncio.sleep(0.1)
 
-        await self.app.services.detail("").setName("Mr. World")
-        res = await self.app.services.detail("").getName()
+        await self.app.services.detail.setName("Mr. World")
+        res = await self.app.services.detail.getName()
         self.utils.assertEqual(res, "Mr. World")
 
         await client.close()
         await server.terminate()
 
     async def test_rejecting_error_if_service_unavailable(self):
+        server = await serve()
+        client = await self.app.connect(config)
         err: Exception
 
+        await client.register(self.app.services.detail)
+        await server.terminate()
+
         try:
-            await self.app.services.detail("").getName()
+            await self.app.services.detail.getName()
         except Exception as e:
             err = e
 
@@ -135,13 +124,15 @@ class RpcCommonTest:
         self.utils.assertEqual(err.args[0],
                                "Service tests.app.services.detail is not available")
 
+        await client.close()
+
     async def test_getting_result_from_remote_generator(self):
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        gen = self.app.services.detail("").getOrgs()
+        gen = self.app.services.detail.getOrgs()
         expected = ["Mozilla", "GitHub", "Linux"]
         result = []
         err: Exception
@@ -164,9 +155,9 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        gen = self.app.services.detail("").repeatAfterMe()
+        gen = self.app.services.detail.repeatAfterMe()
         result = await gen.asend(None)
         result1 = await gen.asend("Google")
 
@@ -180,9 +171,9 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        gen = self.app.services.detail("").repeatAfterMe()
+        gen = self.app.services.detail.repeatAfterMe()
         result = await gen.aclose()
 
         self.utils.assertEqual(result, None)
@@ -194,9 +185,9 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
-        gen = self.app.services.detail("").repeatAfterMe()
+        gen = self.app.services.detail.repeatAfterMe()
         msg = "test athrow method"
         err: Exception
 
@@ -215,12 +206,12 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
-        client.register(self.app.services.detail)
+        await client.register(self.app.services.detail)
 
         err: Exception
 
         try:
-            await self.app.services.detail("").triggerTimeout()
+            await self.app.services.detail.triggerTimeout()
         except Exception as e:
             err = e
 

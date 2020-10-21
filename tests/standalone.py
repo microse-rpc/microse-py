@@ -1,5 +1,5 @@
 import unittest
-from alar.client.app import ModuleProxyApp
+from microse.client.app import ModuleProxyApp
 from tests.aio import AioTestCase
 from tests.RpcCommon import RpcCommonTest
 
@@ -38,19 +38,7 @@ class StandaloneClientTest(AioTestCase, RpcCommonTest):
 
         self.assertTrue(isinstance(err, TypeError))
         self.assertEqual(err.args[0],
-                         "Local instance is not supported by standalone client")
-
-    def test_throwing_error_if_trying_to_get_singleton_instance(self):
-        err: Exception
-
-        try:
-            app.services.detail()
-        except Exception as e:
-            err = e
-
-        self.assertTrue(isinstance(err, TypeError))
-        self.assertEqual(err.args[0],
-                         "Local instance is not supported by standalone client")
+                         "tests.app.services.detail is not a class")
 
 
 if __name__ == "__main__":

@@ -2,9 +2,9 @@ from websockets import WebSocketServer, WebSocketServerProtocol as WebSocket, se
 from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 from typing import Any, AsyncGenerator, List
 from urllib.parse import parse_qs
-from alar.rpc.channel import RpcChannel
-from alar.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction
-from alar.client.proxy import ModuleProxy
+from microse.rpc.channel import RpcChannel
+from microse.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction, getInstance
+from microse.client.proxy import ModuleProxy
 import asyncio
 import http
 import os
@@ -27,17 +27,10 @@ class RpcServer(RpcChannel):
         self.tasks = Map()
         self.proxyRoot = None
 
-    async def open(self, enableLifeCycle=True):
+    async def open(self):
         pathname = self.pathname
         isUnixSocket = self.protocol == "ws+unix:"
         wsServer: WebSocketServer
-
-        if enableLifeCycle:
-            self.enableLifeCycle = True
-
-            # Perform initiation for every module in sequence.
-            for mod in self.registry.values():
-                await tryLifeCycleFunction(mod, "init", self.handleError)
 
         if isUnixSocket and pathname:
             dir = os.path.dirname(pathname)
@@ -64,7 +57,6 @@ class RpcServer(RpcChannel):
                                    ssl=self.ssl)
 
         self.wsServer = wsServer
-        return self
 
     async def __processRequest(self, path: str, headers):
         """
@@ -108,19 +100,20 @@ class RpcServer(RpcChannel):
             self.wsServer.close()
             await self.wsServer.wait_closed()
 
-        if self.enableLifeCycle:
-            for mod in self.registry.values():
-                await tryLifeCycleFunction(mod, "destroy", self.handleError)
+        for mod in self.registry.values():
+            await tryLifeCycleFunction(mod, "destroy", self.handleError)
 
         if self.proxyRoot:
             self.proxyRoot._server = None
+            self.proxyRoot._remoteSingletons = {}
             self.proxyRoot = None
 
-    def register(self, mod: ModuleProxy):
+    async def register(self, mod: ModuleProxy):
         self.registry[mod.name] = mod
+        await tryLifeCycleFunction(mod, "init", self.handleError)
         return self
 
-    def publish(self, topic: str, data: Any, clients: List[str]=[]) -> bool:
+    def publish(self, topic: str, data: Any, clients: List[str] = []) -> bool:
         """
         Publishes data to the corresponding topic, if `clients` are provided,
         the topic will only be published to them.
@@ -250,7 +243,8 @@ class RpcServer(RpcChannel):
             if not mod:
                 throwUnavailableError(module)
 
-            ins = mod()
+            app = mod._root
+            ins = getInstance(app, module)
 
             if getattr(ins, "__readyState", -1) == 0:
                 throwUnavailableError(module)

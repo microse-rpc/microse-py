@@ -1,2 +1,2 @@
 websockets
-nest_asyncio>=1.4
+nest_asyncio
