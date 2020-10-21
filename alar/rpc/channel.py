@@ -15,7 +15,7 @@ class RpcChannel:
     An RPC channel that allows modules to communicate remotely.
     """
 
-    def __init__(self, options, host=""):
+    def __init__(self, options, hostname=""):
         self.protocol = "ws:"
         self.hostname = "127.0.0.1"
         self.port = 80
@@ -26,7 +26,10 @@ class RpcChannel:
         self.ssl = None
         self.onError(print_err)
 
-        if type(options) == dict:
+        if type(options) == int:
+            self.hostname = str(hostname or self.hostname)
+            self.port = int(options)
+        elif type(options) == dict:
             self.protocol = options.get("protocol") or self.protocol
             self.hostname = options.get("hostname") or self.hostname
             self.port = options.get("port") or self.port
@@ -35,10 +38,6 @@ class RpcChannel:
             self.secret = options.get("secret") or self.secret
             self.codec = options.get("codec") or self.codec
             self.ssl = options.get("ssl") or self.ssl
-        elif type(options) == int:
-            self.protocol = "ws"
-            self.hostname = str(host)
-            self.port = int(options)
         elif type(options) == str:
             url = str(options)
             isAbsPath = url[0] == "/"
@@ -69,7 +68,8 @@ class RpcChannel:
                 if isAbsPath:
                     self.pathname = urlObj.path
                 elif urlObj.path != "/":
-                    self.pathname = os.getcwd() + urlObj.path
+                    self.pathname = os.path.normpath(
+                        os.getcwd() + "/" + urlObj.path)
                 else:
                     raise Exception("IPC requires a pathname")
             else:
