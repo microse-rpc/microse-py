@@ -63,7 +63,7 @@ class RpcClient(RpcChannel):
             raise Exception("Channel to " + self.serverId + " is already open")
         elif self.closed:
             raise Exception("Cannot reconnect to " +
-                            self.serverId + "after closing the channel")
+                            self.serverId + " after closing the channel")
 
         self.state = "connecting"
         ping_timeout = self.pingTimeout / 1000
@@ -97,7 +97,7 @@ class RpcClient(RpcChannel):
         if type(res) != list or res[0] != ChannelEvents.CONNECT:
             self.state = "closed"
             self.socket.close(1002)
-            raise Exception("Cannot connect to " + self.dsn)
+            raise Exception("Cannot connect to " + self.serverId)
         else:
             self.state = "connected"
             self.__updateServerId(str(res[1]))
@@ -212,10 +212,6 @@ class RpcClient(RpcChannel):
         if self.socket and self.socket.open:
             data = list(args)
 
-            # If the last argument in the data is empty, do not send it.
-            if data[-1:] is None:
-                data.pop()
-
             if self.codec == "JSON":
                 asyncio.create_task(self.socket.send(JSON.stringify(data)))
 
@@ -236,15 +232,13 @@ class RpcClient(RpcChannel):
 
         return self
 
-    def unsubscribe(self, topic: str, handle: Callable = None):
+    def unsubscribe(self, topic: str, handle: Callable = None) -> bool:
         """
         Unsubscribes the handle function or all handlers from the corresponding
         topic.
         """
         if handle is None:
-            if self.topics.has(topic):
-                self.topics.delete(topic)
-                return True
+            return self.topics.delete(topic)
         else:
             handlers: List[Callable] = self.topics.get(topic)
 
@@ -299,8 +293,6 @@ class RpcClient(RpcChannel):
             else:
                 setattr(singletons[self.serverId], "__readyState", 0)
 
-        return self
-
     def __flushReadyState(self, state: int):
         for name in self.registry:
             mod: ModuleProxy = self.registry.get(name)
@@ -338,16 +330,15 @@ class RpcInstance:
                     # unnecessary network traffics.
                     if server and server.id == self.client.serverId:
                         ins = getInstance(mod._root, mod.name)
-                        state = getattr(ins, "__readyState", -1)
 
-                        if state == 0:
+                        if getattr(ins, "__readyState", -1) == 0:
                             throwUnavailableError(mod.name)
                         else:
                             return getattr(ins, prop)(*args)
 
                     # If the RPC channel is not available, call the local
                     # instance and wrap it asynchronous.
-                    if self.client.state != "connected":
+                    if not self.client.connected:
                         throwUnavailableError(mod.name)
 
                 return AwaitableGenerator(self.client,
@@ -369,7 +360,7 @@ class Task:
 
 class AwaitableGenerator:
     def __init__(self, client: RpcClient, module: str, method: str, *args):
-        self.status = "pending"
+        self.state = "pending"
         self.client = client
         self.module = module
         self.method = method
@@ -405,7 +396,7 @@ class AwaitableGenerator:
         return await self.asend(None)
 
     async def asend(self, value: Any):
-        if self.status == "closed":
+        if self.state == "closed":
             raise StopAsyncIteration()
 
         try:
@@ -421,7 +412,7 @@ class AwaitableGenerator:
             raise err
 
     async def athrow(self, type: Callable, message: str = None, traceback=None):
-        if self.status == "closed":
+        if self.state == "closed":
             return
 
         try:
@@ -445,7 +436,7 @@ class AwaitableGenerator:
             raise err
 
     async def aclose(self):
-        if self.status == "closed":
+        if self.state == "closed":
             return
 
         try:
@@ -463,9 +454,9 @@ class AwaitableGenerator:
             raise err
 
     def __close(self, result: Any = None):
-        if self.status != "closed":
+        if self.state != "closed":
             self.result = result
-            self.status = "closed"
+            self.state = "closed"
             self.client.tasks.delete(self.taskId)
 
             # Stop all pending tasks
@@ -482,14 +473,14 @@ class AwaitableGenerator:
 
     def __createTask(self):
         def resolve(data):
-            if self.status == "pending":
+            if self.state == "pending":
                 if len(self.queue) > 0:
                     task: Task = self.queue[0]
                     self.queue = self.queue[1:]
                     task.resolve(data)
 
         def reject(err):
-            if self.status == "pending":
+            if self.state == "pending":
                 if len(self.queue) > 0:
                     task: Task = self.queue[0]
                     self.queue = self.queue[1:]
@@ -499,7 +490,7 @@ class AwaitableGenerator:
 
         return Task(resolve, reject)
 
-    def __prepareTask(self, event: int, genData=None):
+    def __prepareTask(self, event: int, args: List[Any]):
         if not self.client.tasks.get(self.taskId):
             self.client.tasks.set(self.taskId, self.__createTask())
 
@@ -514,6 +505,10 @@ class AwaitableGenerator:
 
         timeout = loop.call_later(self.client.timeout / 1000, handleTimeout)
         future = loop.create_future()
+        genData = None
+
+        if len(args) > 0:
+            genData = args[0]
 
         def resolve(data):
             timeout.cancelled() or timeout.cancel()
@@ -525,6 +520,8 @@ class AwaitableGenerator:
 
         task = Task(resolve, reject, event, genData)
         self.queue.append(task)
+        self.client.send(event, self.taskId,
+                         self.module, self.method, args)
 
         return future
 
@@ -534,7 +531,7 @@ class AwaitableGenerator:
         if len(args) >= 1:
             data = args[0]
 
-        if self.status == "closed":
+        if self.state == "closed":
             if event == ChannelEvents.INVOKE:
                 return self.result
             elif event == ChannelEvents.YIELD:
@@ -544,7 +541,4 @@ class AwaitableGenerator:
             elif event == ChannelEvents.THROW:
                 raise data
         else:
-            self.client.send(event, self.taskId,
-                             self.module, self.method, args)
-
-            return self.__prepareTask(event, data)
+            return self.__prepareTask(event, args)

@@ -111,7 +111,6 @@ class RpcServer(RpcChannel):
     async def register(self, mod: ModuleProxy):
         self.registry[mod.name] = mod
         await tryLifeCycleFunction(mod, "init", self.handleError)
-        return self
 
     def publish(self, topic: str, data: Any, clients: List[str] = []) -> bool:
         """

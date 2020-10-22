@@ -165,15 +165,15 @@ def parseException(data):
     return exc
 
 
-def getInstance(app, modName: str):
-    if not app._singletons.get(modName):
-        mod = app._cache.get(modName)
+def getInstance(app, module: str):
+    if not app._singletons.get(module):
+        mod = app._cache.get(module)
         if mod:
-            app._singletons[modName] = mod.new()
+            app._singletons[module] = mod.new()
         else:
-            throwUnavailableError(modName)
+            throwUnavailableError(module)
 
-    return app._singletons[modName]
+    return app._singletons[module]
 
 
 async def tryLifeCycleFunction(mod, fn: str, errorHandle: Callable):
