@@ -16,12 +16,10 @@ GeneratorEvents = [ChannelEvents.YIELD,
 
 
 class RpcServer(RpcChannel):
-    def __init__(self, options, host=""):
-        RpcChannel.__init__(self, options, host)
+    def __init__(self, options, hostname=""):
+        RpcChannel.__init__(self, options, hostname)
         self.id = self.id or self.dsn
-        self.enableLifeCycle = False
         self.wsServer = None
-        self.pingTimer = None
         self.registry = dict()
         self.clients = Map()
         self.tasks = Map()
@@ -44,21 +42,21 @@ class RpcServer(RpcChannel):
 
         if isUnixSocket:
             wsServer = await unix_serve(self.__handleConnection, pathname,
-                                        process_request=self.__processRequest,
+                                        process_request=self.__handleHandshake,
                                         ping_interval=None,
                                         ping_timeout=None,
                                         ssl=self.ssl)
         else:
             wsServer = await serve(self.__handleConnection,
                                    self.hostname, self.port,
-                                   process_request=self.__processRequest,
+                                   process_request=self.__handleHandshake,
                                    ping_interval=None,
                                    ping_timeout=None,
                                    ssl=self.ssl)
 
         self.wsServer = wsServer
 
-    async def __processRequest(self, path: str, headers):
+    async def __handleHandshake(self, path: str, headers):
         """
         Verify authentication on the `upgrade` stage.
         """
@@ -84,7 +82,7 @@ class RpcServer(RpcChannel):
         _, _query = path.split("?")
         query = parse_qs(_query)
         clientId = str(query.get("id") and query.get("id")[0] or "")
-        self.clients.set(client, {"id": clientId, "isAlive": True})
+        self.clients.set(client, clientId)
         self.tasks.set(client, Map())
 
         # Notify the client that the connection is ready.
@@ -132,8 +130,8 @@ class RpcServer(RpcChannel):
 
         clients: List[str] = []
 
-        for info in self.clients.values():
-            clients.append(info["id"])
+        for id in self.clients.values():
+            clients.append(id)
 
         return clients
 
