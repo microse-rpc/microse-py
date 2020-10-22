@@ -1,13 +1,13 @@
 import unittest
-from microse.client.app import ModuleProxyApp
+from microse.app import ModuleProxyApp
 from tests.aio import AioTestCase
 from tests.RpcCommon import RpcCommonTest
 
 
-app = ModuleProxyApp("tests.app")
+app = ModuleProxyApp("tests.app", False)
 
 
-class StandaloneClientTest(AioTestCase, RpcCommonTest):
+class ClientOnlyTest(AioTestCase, RpcCommonTest):
     _app = app
 
     def test_creating_root_module_proxy_instance(self):
@@ -23,6 +23,19 @@ class StandaloneClientTest(AioTestCase, RpcCommonTest):
                          "tests.app.services.detail")
         self.assertEqual(app.services.detail.__module__, None)
         self.assertEqual(app.services.detail.__ctor__, None)
+
+    async def test_throwing_error_if_trying_serve(self):
+        err: Exception = None
+
+        try:
+            await app.serve("ws://localhost:18888")
+        except Exception as e:
+            err = e
+
+        self.assertTrue(isinstance(err, Exception))
+        self.assertEqual(
+            err.args[0],
+            "serve() is not available for client-only module proxy app")
 
 
 if __name__ == "__main__":

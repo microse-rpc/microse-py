@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, List
 from urllib.parse import parse_qs
 from microse.rpc.channel import RpcChannel
 from microse.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction, getInstance
-from microse.client.proxy import ModuleProxy
+from microse.proxy import ModuleProxy
 import asyncio
 import http
 import os

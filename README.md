@@ -207,20 +207,17 @@ class user:
 
 ## Standalone Client
 
-Microse also provides a way to be running as a standalone client outside the
-main program codebase, Instead of importing from the main module, we import the 
-`microse.client.app` sub-module, which is designed to be run in standalone
-python programs. The client will not actually load any modules since there are
-no such files, instead, it just map the module names so you can use them as
-usual.
+Microse also provides a way to be running as a client-only application, in this
+case the client will not actually load any modules since there are no such files,
+instead, it just map the module names so you can use them as usual.
 
 In the following example, we assume that `app.services.User` service is served
 by a Node.js program, and we can use it in our python program as usual.
 
 ```py
-from microse.client.app import ModuleProxyApp
+from microse.app import ModuleProxyApp
 
-app = ModuleProxyApp("app") # no path needed
+app = ModuleProxyApp("app", False) # pass the second argument False
 
 async def handle():
     channel = await app.connect("ws://localhost:4000")

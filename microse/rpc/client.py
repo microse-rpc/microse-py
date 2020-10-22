@@ -3,7 +3,7 @@ from websockets.exceptions import ConnectionClosedOK
 from typing import Callable, Any, List
 from microse.rpc.channel import RpcChannel
 from microse.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, getInstance
-from microse.client.proxy import ModuleProxy
+from microse.proxy import ModuleProxy
 import asyncio
 
 

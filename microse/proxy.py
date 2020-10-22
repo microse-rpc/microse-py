@@ -20,6 +20,9 @@ class ModuleProxy:
         """
         The original export of the module.
         """
+        if self._root._clientOnly:
+            return None
+
         return import_module(self.__name__)
 
     @property
@@ -28,11 +31,26 @@ class ModuleProxy:
         If there is a class via the same name as the filename, this property
         returns the class, otherwise it returns `None`.
         """
+        if self._root._clientOnly:
+            return None
+
         _name = self.__name__.split(".")[-1]
         _class = getattr(self.__module__, _name, None)
 
         if isclass(_class):
             return _class
+        else:
+            return None
+
+    def __getattr__(self, name: str):
+        value = self._children.get(name)
+
+        if value:
+            return value
+        elif name[0] != "_":
+            value = ModuleProxy(self.__name__ + "." + name, self._root or self)
+            self._children[name] = value
+            return value
         else:
             return None
 
@@ -79,28 +97,17 @@ class ModuleProxy:
             else:
                 throwUnavailableError(modName)
         else:
+            if self._root._clientOnly:
+                throwUnavailableError(modName)
+
+            # The module hasn't been registered to rpc channel, access the local
+            # instance instead.
             ins = getInstance(self._root, modName)
 
             if callable(getattr(ins, method)):
                 return getattr(ins, method)(*args)
             else:
                 raise TypeError(f"{self.__name__} is not a function")
-
-    def __getattr__(self, name: str):
-        value = self._children.get(name)
-
-        if value:
-            return value
-        elif name[0] != "_":
-            value = ModuleProxy(self.__name__ + "." + name,
-                                self._root or self)
-            self._children[name] = value
-            return value
-        else:
-            return None
-
-    def __instancecheck__(self, ins):
-        return isinstance(ins, self.__ctor__)
 
     def __str__(self):
         return self.__name__

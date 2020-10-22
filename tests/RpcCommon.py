@@ -1,5 +1,5 @@
 import unittest
-from microse.client.app import ModuleProxyApp
+from microse.app import ModuleProxyApp
 from tests.server.process import serve
 from tests.base import config
 import asyncio
