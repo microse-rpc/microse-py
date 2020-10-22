@@ -19,16 +19,16 @@ and methods:
 
 - `__init__(self, name: str)` Creates a root module proxy, `name` will be used
     as a namespace for importing modules.
-- `serve(self, options, immediate=True) -> asyncio.Future[RpcServer]`
+- `serve(self, options) -> asyncio.Future[RpcServer]`
     Serves an RPC server according to the given URL or Unix socket filename, or
     provide a dict for detailed options.
-    - `serve(url: str, immediate = True)`
-    - `serve(url: dict, immediate = True)`
-- `connect(self, options, immediate=True) -> asyncio.Future[RpcClient]`
+    - `serve(url: str)`
+    - `serve(url: dict)`
+- `connect(self, options) -> asyncio.Future[RpcClient]`
     Connects to an RPC server according to the given URL or Unix socket
     filename, or provide a dict for detailed options.
-    - `connect(url: str, immediate = True)`
-    - `connect(url: dict, immediate = True)`
+    - `connect(url: str)`
+    - `connect(url: dict)`
 
 An microse application must use this class to create a root proxy in order to
 use its features.
@@ -57,11 +57,12 @@ The following properties and methods work in both implementations:
 
 - `id: str` The unique ID of the server or the client.
 - `dsn: str` Gets the data source name according to the configuration.
-- `open() -> asyncio.Future[RpcChannel]` Opens the channel. This method will be
-    called automatically by `ModuleProxyApp.serve()` and
-    `ModuleProxyApp.connect()` if their `immediate` argument is set `True`.
+- `open() -> asyncio.Future[RpcChannel]` Opens the channel. This method is
+    called internally by `ModuleProxyApp.serve()` and
+    `ModuleProxyApp.connect()`.
 - `close() -> asyncio.Future[None]` Closes the channel.
-- `register(mod: ModuleProxy) -> RpcChannel` Registers a module to the channel.
+- `register(mod: ModuleProxy) -> asyncio.Future[None]` Registers a module
+    to the channel.
 - `onError(handler: Callable` Binds an error handler invoked whenever an error
     occurred in asynchronous operations which can't be caught during run-time,
     the first arguments passed to the `handler` function is the exception raised.
