@@ -147,7 +147,9 @@ class RpcServer(RpcChannel):
 
             _data: Any = None
 
-            if event == ChannelEvents.PONG:
+            if event == ChannelEvents.CONNECT:
+                _data = [event, str(taskId)]
+            elif event == ChannelEvents.PONG:
                 _data = [event, int(taskId)]
             elif self.codec == "JSON":
                 _data = [event, taskId, data]
@@ -301,7 +303,7 @@ class RpcServer(RpcChannel):
                 # go to the except block.
                 await task.athrow(type(input), input.args[0])
         except StopAsyncIteration:
-            event = ChannelEvents.YIELD
+            event = ChannelEvents.RETURN
             tasks.delete(taskId)
             data = {"done": True}
         except Exception as err:

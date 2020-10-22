@@ -12,13 +12,24 @@ class ModuleProxy:
         # Standalone client doesn't support these properties, so just set  them
         # to None.
         self.path = None
-        self.singletons = None
         self.exports = None
         self.proto = None
         self.ctor = None
 
     def new(self, *args, **kargs):
         raise TypeError(f"{self.name} is not a class")
+
+    def __getattr__(self, name: str):
+        mod = self._children.get(name)
+
+        if mod:
+            return mod
+        elif name[0] != "_":
+            mod = ModuleProxy(self.name + "." + name, self._root or self)
+            self._children[name] = mod
+            return mod
+        else:
+            return None
 
     def __call__(self, *args):
         index = self.name.rindex(".")
@@ -61,18 +72,6 @@ class ModuleProxy:
                 return getattr(ins, method)(*args)
 
         throwUnavailableError(modName)
-
-    def __getattr__(self, name: str):
-        value = self._children.get(name)
-
-        if value:
-            return value
-        elif name[0] != "_":
-            value = ModuleProxy(self.name + "." + name, self._root or self)
-            self._children[name] = value
-            return value
-        else:
-            return None
 
     def __str__(self):
         return self.name

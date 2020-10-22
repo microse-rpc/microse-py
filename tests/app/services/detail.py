@@ -2,7 +2,7 @@ import asyncio
 
 
 class detail:
-    def __init__(self, name=""):
+    def __init__(self, name="Mr. World"):
         def fn():
             pass
 
