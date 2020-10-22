@@ -10,33 +10,16 @@ import os
 
 class LocalInstanceTest(AioTestCase):
     def test_creating_root_module_proxy_instance(self):
-        self.assertEqual(app.name, "tests.app")
-        self.assertEqual(app.path, normpath(os.getcwd() + "/test/app"))
+        self.assertEqual(app.__name__, "tests.app")
 
     def test_accessing_module(self):
-        self.assertEqual(app.simple.name, "tests.app.simple")
-        self.assertEqual(app.simple.path,
-                         normpath(os.getcwd() + "/test/app/simple"))
-        self.assertEqual(app.simple.ctor, simple)
+        self.assertEqual(app.simple.__name__, "tests.app.simple")
+        self.assertEqual(app.simple.__ctor__, simple)
 
     def test_accessing_deep_module(self):
-        self.assertEqual(app.services.detail.name, "tests.app.services.detail")
-        self.assertEqual(app.services.detail.path,
-                         normpath(os.getcwd() + "/test/app/services/detail"))
-        self.assertEqual(app.services.detail.ctor, detail)
-
-    def test_resolving_module_name_accroding_to_path(self):
-        self.assertEqual(app.resolve(app.services.detail.path),
+        self.assertEqual(app.services.detail.__name__,
                          "tests.app.services.detail")
-        self.assertEqual(app.resolve(app.services.detail.path + ".py"),
-                         "tests.app.services.detail")
-
-    async def test_creating_instance(self):
-        test: detail = app.services.detail.new("Mr. Handsome")
-
-        self.assertTrue(isinstance(test, detail))
-        self.assertEqual(test.name, "Mr. Handsome")
-        self.assertEqual(await test.getName(), test.name)
+        self.assertEqual(app.services.detail.__ctor__, detail)
 
     async def test_getting_singleton_instance(self):
         await app.services.detail.setName("Mr. Handsome")
@@ -44,17 +27,14 @@ class LocalInstanceTest(AioTestCase):
         await app.services.detail.setName("Mr. World")
         self.assertEqual(await app.services.detail.getName(), "Mr. World")
 
-    def test_isinstance_check(self):
-        test: detail = app.services.detail.new("A-yon Lee")
-        self.assertTrue(isinstance(test, app.services.detail))
+    async def test_accessing_non_class_module(self):
+        self.assertEqual(app.config.__name__, "tests.app.config")
 
-    def test_accessing_non_class_module(self):
-        self.assertEqual(app.config.name, "tests.app.config")
-        self.assertEqual(app.config.path,
-                         normpath(os.getcwd() + "/test/app/config"))
+        self.assertEqual(app.config.__module__.hostname, _config.hostname)
+        self.assertEqual(app.config.__module__.port, _config.port)
 
-        self.assertEqual(app.config.exports.hostname, _config.hostname)
-        self.assertEqual(app.config.exports.port, _config.port)
+        value = await app.config.get("hostname")
+        self.assertEqual(value, "127.0.0.1")
 
     async def test_getting_result_from_local_generator(self):
         gen = app.services.detail.getOrgs()

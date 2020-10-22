@@ -11,34 +11,18 @@ class StandaloneClientTest(AioTestCase, RpcCommonTest):
     _app = app
 
     def test_creating_root_module_proxy_instance(self):
-        self.assertEqual(app.name, "tests.app")
-        self.assertEqual(app.path, None)
+        self.assertEqual(app.__name__, "tests.app")
 
     def test_accessing_module(self):
-        self.assertEqual(app.simple.name, "tests.app.simple")
-        self.assertEqual(app.simple.path, None)
-        self.assertEqual(app.simple.ctor, None)
-        self.assertEqual(app.simple.proto, None)
-        self.assertEqual(app.simple.exports, None)
+        self.assertEqual(app.simple.__name__, "tests.app.simple")
+        self.assertEqual(app.simple.__module__, None)
+        self.assertEqual(app.simple.__ctor__, None)
 
     def test_accessing_deep_module(self):
-        self.assertEqual(app.services.detail.name, "tests.app.services.detail")
-        self.assertEqual(app.services.detail.path, None)
-        self.assertEqual(app.services.detail.ctor, None)
-        self.assertEqual(app.services.detail.proto, None)
-        self.assertEqual(app.services.detail.exports, None)
-
-    def test_throwing_error_if_trying_to_create_instance(self):
-        err: Exception
-
-        try:
-            app.services.detail.new("Mr. Handsome")
-        except Exception as e:
-            err = e
-
-        self.assertTrue(isinstance(err, TypeError))
-        self.assertEqual(err.args[0],
-                         "tests.app.services.detail is not a class")
+        self.assertEqual(app.services.detail.__name__,
+                         "tests.app.services.detail")
+        self.assertEqual(app.services.detail.__module__, None)
+        self.assertEqual(app.services.detail.__ctor__, None)
 
 
 if __name__ == "__main__":

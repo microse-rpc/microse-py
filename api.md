@@ -5,15 +5,10 @@
 This class used to create proxy when accessing a module, it has the following
 properties and methods:
 
-- `name: str` The name (with namespace) of the module.
-- `path: str` The path (without extension) of the module.
-- `exports: ModuleType` The very exports object of the module.
-- `proto: typing.Any` If there is a class via the same name as the filename,
-    this property returns the class, otherwise it returns the module itself.
-- `ctor: typing.Callable` If there is a class via the same name as the filename,
-    this property returns the class, otherwise it returns `None`.
-- `new(self, *args, **kargs)` Creates a new instance of the module.
-
+- `__name__: str` The name (with namespace) of the module.
+- `__module__: ModuleType` The original exports object of the module.
+- `__ctor__: typing.Callable` If there is a class via the same name as the
+    filename, this property returns the class, otherwise it returns `None`.
 
 This class is considered abstract, and shall not be used in user code.
 
@@ -22,7 +17,8 @@ This class is considered abstract, and shall not be used in user code.
 This class extends from `ModuleProxy`, and has the following extra properties
 and methods:
 
-- `__init__(self, name: str, path: str)` Creates a root module proxy.
+- `__init__(self, name: str)` Creates a root module proxy, `name` will be used
+    as a namespace for importing modules.
 - `serve(self, options, immediate=True) -> asyncio.Future[RpcServer]`
     Serves an RPC server according to the given URL or Unix socket filename, or
     provide a dict for detailed options.
@@ -33,7 +29,6 @@ and methods:
     filename, or provide a dict for detailed options.
     - `connect(url: str, immediate = True)`
     - `connect(url: dict, immediate = True)`
-- `resolve(self, path: str) -> str` Resolves the given path to a module name.
 
 An microse application must use this class to create a root proxy in order to
 use its features.

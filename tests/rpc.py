@@ -51,8 +51,8 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         async def destroy(self):
             await self.setName("Mr. World")
 
-        setattr(app.services.detail.ctor, "init", init)
-        setattr(app.services.detail.ctor, "destroy", destroy)
+        setattr(app.services.detail.__ctor__, "init", init)
+        setattr(app.services.detail.__ctor__, "destroy", destroy)
 
         server = await app.serve(config)
         await server.register(app.services.detail)
@@ -65,8 +65,8 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         res2 = await app.services.detail.getName()
         self.assertEqual(res2, "Mr. World")
 
-        delattr(app.services.detail.ctor, "init")
-        delattr(app.services.detail.ctor, "destroy")
+        delattr(app.services.detail.__ctor__, "init")
+        delattr(app.services.detail.__ctor__, "destroy")
 
 
 if __name__ == "__main__":

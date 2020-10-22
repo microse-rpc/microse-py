@@ -4,20 +4,15 @@ from typing import Any
 
 class ModuleProxy:
     def __init__(self, name: str, root):
-        self.name = name
+        self.__name__ = name
         self._root = root
         self._children = {}
         root._cache[name] = self
 
         # Standalone client doesn't support these properties, so just set  them
         # to None.
-        self.path = None
-        self.exports = None
-        self.proto = None
-        self.ctor = None
-
-    def new(self, *args, **kargs):
-        raise TypeError(f"{self.name} is not a class")
+        self.__module__ = None
+        self.__ctor__ = None
 
     def __getattr__(self, name: str):
         mod = self._children.get(name)
@@ -25,16 +20,16 @@ class ModuleProxy:
         if mod:
             return mod
         elif name[0] != "_":
-            mod = ModuleProxy(self.name + "." + name, self._root or self)
+            mod = ModuleProxy(self.__name__ + "." + name, self._root or self)
             self._children[name] = mod
             return mod
         else:
             return None
 
     def __call__(self, *args):
-        index = self.name.rindex(".")
-        modName = self.name[0:index]
-        method = self.name[index+1:]
+        index = self.__name__.rindex(".")
+        modName = self.__name__[0:index]
+        method = self.__name__[index+1:]
         singletons: dict = self._root._remoteSingletons.get(modName)
 
         if singletons and len(singletons.values()) > 0:
@@ -74,7 +69,7 @@ class ModuleProxy:
         throwUnavailableError(modName)
 
     def __str__(self):
-        return self.name
+        return self.__name__
 
     def __json__(self):
-        return self.name
+        return self.__name__

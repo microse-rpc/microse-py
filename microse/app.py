@@ -9,13 +9,12 @@ class ModuleProxyApp(ModuleProxy):
     Creates a root module proxy.
     """
 
-    def __init__(self, name: str, path: str):
-        self.path = os.path.normpath(path)
+    def __init__(self, name: str):
         self._server = None
         self._cache = {}
         self._singletons = {}
         self._remoteSingletons = {}
-        ModuleProxy.__init__(self, name, path, self)
+        ModuleProxy.__init__(self, name, self)
 
     async def serve(self, options, immediate=True):
         """
@@ -43,14 +42,3 @@ class ModuleProxyApp(ModuleProxy):
         client = RpcClient(options)
         immediate and await client.open()
         return client
-
-    def resolve(self, path: str) -> str:
-        """
-        Resolves the given path to a module name.
-        """
-        path = os.path.normpath(path)
-        dir = self.path + os.sep
-
-        if path.startswith(dir):
-            modPath, ext = os.path.splitext(path[len(dir):])
-            return self.name + "." + modPath.replace(os.sep, ".")

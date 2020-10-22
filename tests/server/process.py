@@ -14,7 +14,7 @@ if sys.platform == "linux":
     nest_asyncio.apply()
 
 
-app = ModuleProxyApp("tests.app", os.getcwd() + "/test/app/")
+app = ModuleProxyApp("tests.app")
 _config = {
     "hostname": config.hostname,
     "port": config.port,

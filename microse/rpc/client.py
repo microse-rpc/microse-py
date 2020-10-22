@@ -279,12 +279,12 @@ class RpcClient(RpcChannel):
         self.__flushReadyState(1)
 
     async def register(self, mod: ModuleProxy):
-        if self.registry.get(mod.name) is None:
-            self.registry[mod.name] = mod
-            singletons = mod._root._remoteSingletons.get(mod.name)
+        if self.registry.get(mod.__name__) is None:
+            self.registry[mod.__name__] = mod
+            singletons = mod._root._remoteSingletons.get(mod.__name__)
 
             if not singletons:
-                singletons = mod._root._remoteSingletons[mod.name] = {}
+                singletons = mod._root._remoteSingletons[mod.__name__] = {}
 
             singletons[self.serverId] = self.__createRemoteInstance(mod)
 
@@ -296,7 +296,7 @@ class RpcClient(RpcChannel):
     def __flushReadyState(self, state: int):
         for name in self.registry:
             mod: ModuleProxy = self.registry.get(name)
-            singletons = mod._root._remoteSingletons.get(mod.name)
+            singletons = mod._root._remoteSingletons.get(mod.__name__)
 
             if singletons and singletons.get(self.serverId):
                 setattr(singletons.get(self.serverId), "__readyState", state)
@@ -315,7 +315,7 @@ class RpcInstance:
     def __getattr__(self, prop: str):
         if self.props.get(prop) is None:
             mod = self.module
-            ctor = mod.ctor
+            ctor = mod.__ctor__
             method = getattr(ctor, prop, None)
 
             if ctor and not callable(method):
@@ -329,20 +329,20 @@ class RpcInstance:
                     # process, then directly call the local instance to prevent
                     # unnecessary network traffics.
                     if server and server.id == self.client.serverId:
-                        ins = getInstance(mod._root, mod.name)
+                        ins = getInstance(mod._root, mod.__name__)
 
                         if getattr(ins, "__readyState", -1) == 0:
-                            throwUnavailableError(mod.name)
+                            throwUnavailableError(mod.__name__)
                         else:
                             return getattr(ins, prop)(*args)
 
                     # If the RPC channel is not available, call the local
                     # instance and wrap it asynchronous.
                     if not self.client.connected:
-                        throwUnavailableError(mod.name)
+                        throwUnavailableError(mod.__name__)
 
                 return AwaitableGenerator(self.client,
-                                          mod.name, prop, *args)
+                                          mod.__name__, prop, *args)
 
             self.props[prop] = bound
             bound.__name__ = ctor and method.__name__ or prop

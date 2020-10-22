@@ -169,7 +169,10 @@ def getInstance(app, module: str):
     if not app._singletons.get(module):
         mod = app._cache.get(module)
         if mod:
-            app._singletons[module] = mod.new()
+            if mod.__ctor__:
+                app._singletons[module] = mod.__ctor__()
+            else:
+                return mod.__module__
         else:
             throwUnavailableError(module)
 
@@ -177,7 +180,7 @@ def getInstance(app, module: str):
 
 
 async def tryLifeCycleFunction(mod, fn: str, errorHandle: Callable):
-    ins = getInstance(mod._root, mod.name)
+    ins = getInstance(mod._root, mod.__name__)
 
     if fn == "init":
         if hasattr(ins, "init") and callable(ins.init):

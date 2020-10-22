@@ -1,8 +1,8 @@
 # Microse
 
 Microse (stands for *Micro Remote Object Serving Engine*) is a light-weight
-engine that provides applications the ability to auto-load modules and serve
-them remotely as RPC services.
+engine that provides applications the ability to serve modules as RPC services,
+whether in another process or in another machine.
 
 For API reference, please check the [API documentation](./api.md),
 or the [Protocol Reference](https://github.com/hyurl/microse/blob/master/docs/protocol.md).
@@ -25,7 +25,7 @@ other files can use it as a root namespace and access its sub-modules.
 from microse.app import ModuleProxyApp
 import os
 
-app = ModuleProxyApp("app", os.getcwd() + "/app")
+app = ModuleProxyApp("app") # 'app' will be the root namespace for modules
 ```
 
 In other files, just define a class with the same name as the filename, so that
@@ -40,73 +40,26 @@ class Bootstrap:
         # ...
 ```
 
-```py
-# app/models/User.py
-
-class User:
-    def __init__(self, name: str):
-        self.name = name
-
-    def getName(self):
-        return self.name
-
-    def setName(self, name: str):
-        self.name = name
-```
-
 And other files can access to the modules via the namespace:
 
 ```py
 # index.py
 from app import app
 
-#  Accessing the module as a singleton and call its function directly.
+#  Accessing the module as a singleton and calling its function directly.
 app.Bootstrap.init()
-
-# Using `new()` method on the module to create a new instance.
-user = app.models.User.new("Mr. Handsome")
-
-print(user.getName()) # Mr. Handsome
-```
-
-*TIP: in regular python script, calling a class as a function will create an*
-*instance, but since microse uses this signature for function calls, so to*
-*create instance, we should use the `new` method instead. This may seem a little*
-*odd at first, but it will get by.*
-
-### Non-class Module
-
-If a module doesn't have a class with the same name as the filename, then this
-module will be used directly when accessing to it as a singleton.
-
-```py
-# app/config.py
-hostname = "127.0.0.1"
-port = 80
-
-async def get(key: str):
-    # some async operations...
-    return value
-```
-
-```py
-# Use `exports` property to access the module original exports:
-config = app.config.exports
-print(f"{config.hostname}:{config.port}") # 127.0.0.1:80
-
-# Functions can be called directly:
-print(await app.config.get("someKey"))
 ```
 
 ## Remote Service
 
-RPC is the central part of microse engine, which allows user to serve a module
-remotely, whether in another process or in another machine.
+The above example accesses the module and calls the function in the current
+process, but we can do more, we can serve the module as a remote service, and
+calls its functions as remote procedures.
 
 ### Example
 
-Say I want to serve a user service in a different process and communicate via
-RPC channel, I just have to do this:
+For example, if I want to serve a user service in a different process, I just
+have to do this:
 
 ```py
 # app/services/User.py
@@ -142,8 +95,7 @@ loop.run_until_complete(serve())
 loop.run_forever()
 ```
 
-Just try `python server.py` and the service will be started
-immediately.
+Just try `python server.py` and the service will be started immediately.
 
 And in the client-side code, connect to the service before using remote
 functions.
@@ -260,7 +212,10 @@ main program codebase, Instead of importing from the main module, we import the
 `microse.client.app` sub-module, which is designed to be run in standalone
 python programs. The client will not actually load any modules since there are
 no such files, instead, it just map the module names so you can use them as
-usual. To create a standalone client, use the following code:
+usual.
+
+In the following example, we assume that `app.services.User` service is served
+by a Node.js program, and we can use it in our python program as usual.
 
 ```py
 from microse.client.app import ModuleProxyApp
@@ -271,7 +226,14 @@ async def handle():
     channel = await app.connect("ws://localhost:4000")
     await channel.register(app.services.User)
 
+    fullName = await app.services.User.getFullName("David")
+
+    print(fullName) # David Wood
+
 asyncio.get_event_loop().run_until_complete(handle())
 ```
+
+You can visit the Node.js version of microse from
+[hyurl/microse](https://github.com/hyurl/microse).
 
 For more details, please check the [API documentation](./api.md).
