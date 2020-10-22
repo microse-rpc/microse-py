@@ -117,9 +117,10 @@ class RpcServer(RpcChannel):
         """
         sent = False
 
-        for (socket, info) in self.clients:
-            if len(clients) == 0 or info["id"] in clients:
+        for (socket, id) in self.clients:
+            if len(clients) == 0 or id in clients:
                 self.__dispatch(socket, ChannelEvents.PUBLISH, topic, data)
+                sent = True;
 
         return sent
 
@@ -198,7 +199,7 @@ class RpcServer(RpcChannel):
         except Exception as err:
             self.handleError(err)
 
-        if type(req) != list or type(req[0]) != int:
+        if type(req) != list or len(req) == 0 or type(req[0]) != int:
             return
 
         event: int = req[0]
@@ -214,7 +215,7 @@ class RpcServer(RpcChannel):
             args[0] = parseException(args[0])
 
         if event == ChannelEvents.INVOKE:
-            await self.__handleInvokeEvent(socket, event, taskId,
+            await self.__handleInvokeEvent(socket, taskId,
                                            module, method, args)
 
         elif event in GeneratorEvents:
@@ -227,12 +228,12 @@ class RpcServer(RpcChannel):
     async def __handleInvokeEvent(
         self,
         socket: WebSocket,
-        event: int,
         taskId: int,
         module: str,
         method: str,
         args: list
     ):
+        event: int = 0
         data: Any = None
         tasks: Map = self.tasks.get(socket)
 
@@ -282,8 +283,7 @@ class RpcServer(RpcChannel):
 
         try:
             if not task:
-                callee = module + "(route)." + method + "()"
-                raise ReferenceError("Failed to call " + callee)
+                raise ReferenceError(f"Failed to call {module}.{method}()")
             elif len(args) > 0:
                 input = args[0]
             else:
