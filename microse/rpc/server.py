@@ -120,7 +120,7 @@ class RpcServer(RpcChannel):
         for (socket, id) in self.clients:
             if len(clients) == 0 or id in clients:
                 self.__dispatch(socket, ChannelEvents.PUBLISH, topic, data)
-                sent = True;
+                sent = True
 
         return sent
 
@@ -154,7 +154,11 @@ class RpcServer(RpcChannel):
                 _data = [event, taskId, data]
 
             if _data:
-                asyncio.create_task(socket.send(JSON.stringify(_data)))
+                try:
+                    msg = JSON.stringify(_data)
+                    asyncio.create_task(socket.send(msg))
+                except Exception as err:
+                    self.__dispatch(socket, ChannelEvents.THROW, taskId, err)
 
     async def __listenMessage(self, socket: WebSocket):
         while True:
