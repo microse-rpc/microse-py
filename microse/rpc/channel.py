@@ -107,10 +107,19 @@ class RpcChannel:
         self.handleError = handle
 
     def open(self) -> Future:
+        """
+        Opens the channel.
+        """
         pass
 
     def close(self) -> Future:
+        """
+        Closes the channel.
+        """
         pass
 
     def register(self) -> Future:
+        """
+        Registers a module proxy to the channel.
+        """
         pass

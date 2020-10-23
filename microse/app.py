@@ -7,6 +7,11 @@ import os
 class ModuleProxyApp(ModuleProxy):
     """
     Creates a root module proxy.
+
+    `name` must be a valid namespace in order to load modules.
+
+    `canServe` when false, the proxy cannot be used to serve modules, and a
+    client-only application will be created.
     """
 
     def __init__(self, name: str, canServe=True):
@@ -24,7 +29,7 @@ class ModuleProxyApp(ModuleProxy):
 
         `serve(url: str)`
 
-        `serve(url: dict)`
+        `serve(options: dict)`
 
         NOTE: this method is not available for client-only module proxy app.
         """
@@ -45,7 +50,7 @@ class ModuleProxyApp(ModuleProxy):
 
         `connect(url: str)`
 
-        `connect(url: dict)`
+        `connect(options: dict)`
         """
         client = RpcClient(options)
         await client.open()

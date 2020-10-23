@@ -122,8 +122,8 @@ multiple channels, and register the service to each of them, when calling remote
 functions, microse will automatically calculate routes and redirect traffics to
 them.
 
-NOTE: RPC calling will serialize all input and output data, those data that
-cannot be serialized will be lost during transmission.
+NOTE: RPC calling will serialize (via JSON) all input and output data, those
+data that cannot be serialized will be lost during transmission.
 
 ## Generator Support
 

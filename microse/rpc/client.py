@@ -215,9 +215,6 @@ class RpcClient(RpcChannel):
             if self.codec == "JSON":
                 asyncio.create_task(self.socket.send(JSON.stringify(data)))
 
-    # async def call(self, module: str, method: str, *args):
-    #     return await AwaitableGenerator(self, module, method, *args)
-
     def subscribe(self, topic: str, handle: Callable):
         """
         Subscribes a handle function to the corresponding topic.
@@ -372,7 +369,7 @@ class AwaitableGenerator:
         self.queue = []
 
         # Initiate the task immediately when the remote method is called, this
-        # operation will create a individual task, it will either be awaited as
+        # operation will create an individual task, it will either be awaited as
         # a promise or iterated as a iterator.
         self.task = self.__invokeTask(ChannelEvents.INVOKE, *args)
         self.result = None
