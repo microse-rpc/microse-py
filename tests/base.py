@@ -1,6 +1,5 @@
 from microse.app import ModuleProxyApp
 import tests.app.config as _config
-import os
 
 app = ModuleProxyApp("tests.app")
 config = {

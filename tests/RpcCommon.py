@@ -122,7 +122,7 @@ class RpcCommonTest:
 
         self.utils.assertTrue(isinstance(err, ReferenceError))
         self.utils.assertEqual(err.args[0],
-                               "Service tests.app.services.detail is not available")
+                               "tests.app.services.detail is not available")
 
         await client.close()
 

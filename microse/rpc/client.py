@@ -94,7 +94,8 @@ class RpcClient(RpcChannel):
         msg = await self.socket.recv()
         res = self.__parseResponse(msg)
 
-        if type(res) != list or res[0] != ChannelEvents.CONNECT:
+        if type(res) != list or len(res) < 2 or res[0] != ChannelEvents.CONNECT:
+            # protocol error, shall closed the connection
             self.state = "closed"
             self.socket.close(1002)
             raise Exception("Cannot connect to " + self.serverId)
@@ -199,13 +200,15 @@ class RpcClient(RpcChannel):
 
     async def __reconnect(self):
         while True:
-            if self.closed:
-                break
-
             try:
                 await self.open()
                 break
             except:
+                pass
+
+            if self.closed:
+                break
+            else:
                 await asyncio.sleep(2)
 
     def send(self, *args):

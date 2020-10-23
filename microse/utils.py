@@ -208,4 +208,4 @@ async def tryLifeCycleFunction(mod, fn: str, errorHandle: Callable):
 
 
 def throwUnavailableError(module: str):
-    raise ReferenceError("Service " + module + " is not available")
+    raise ReferenceError(module + " is not available")
