@@ -3,7 +3,7 @@ from websockets.exceptions import ConnectionClosedOK, ConnectionClosedError
 from typing import Any, AsyncGenerator, List
 from urllib.parse import parse_qs
 from microse.rpc.channel import RpcChannel
-from microse.utils import JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, tryLifeCycleFunction, getInstance
+from microse.utils import JSON, Map, ChannelEvents, now, parseError, throwUnavailableError, tryLifeCycleFunction, getInstance
 from microse.proxy import ModuleProxy
 import asyncio
 import http
@@ -216,7 +216,7 @@ class RpcServer(RpcChannel):
 
         if event == ChannelEvents.THROW and len(args) == 1 and type(args[0]) == dict:
             # parse exceptions and errors
-            args[0] = parseException(args[0])
+            args[0] = parseError(args[0])
 
         if event == ChannelEvents.INVOKE:
             await self.__handleInvokeEvent(socket, taskId,

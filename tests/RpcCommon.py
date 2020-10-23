@@ -217,7 +217,7 @@ class RpcCommonTest:
 
         self.utils.assertTrue(isinstance(err, Exception))
         self.utils.assertEqual(err.args[0],
-                               "tests.app.services.detail(route).triggerTimeout() timeout after 1.0s")
+                               "tests.app.services.detail.triggerTimeout() timeout after 1.0s")
 
         await client.close()
         await server.terminate()

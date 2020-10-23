@@ -4,9 +4,13 @@ import random
 import string
 from enum import IntEnum
 from typing import Callable, Any
+from inspect import isclass
 
 
-local = "__local__"
+__global: dict = globals()["__builtins__"]
+
+if type(__global) != dict:
+    __global = __global.__dict__
 
 
 class ChannelEvents(IntEnum):
@@ -126,8 +130,8 @@ def evalRouteId(value) -> int:
             return id(value)
 
 
-def parseException(data):
-    exc: Exception
+def parseError(data):
+    err: Exception = None
 
     if type(data) == dict and type(data.get("message")) == str:
         errObj: dict = data
@@ -135,34 +139,30 @@ def parseException(data):
         message = errObj.get("message")
         code = errObj.get("code")
 
-        if code in ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"]:
-            exc = ModuleNotFoundError(message)
-        elif code in ["ERR_BUFFER_TOO_LARGE", "ERR_OUTOFMEMORY"]:
-            exc = OverflowError(message)
+        if name in __global and isclass(__global[name]):
+            err = __global[name](message)
+        elif name == "EvalError":
+            err = SyntaxError(message)
+        elif name == "RangeError":
+            err = OverflowError(message)
+        elif code == "ERR_SYSTEM_ERROR":
+            err = SystemError(message)
+        elif code in ["MODULE_NOT_FOUND", "ERR_MODULE_NOT_FOUND"]:
+            err = ModuleNotFoundError(message)
+        elif code in ["ERR_BUFFER_TOO_LARGE", "ERR_OUTOFMEMORY", "ERR_OUT_OF_RANGE"]:
+            err = OverflowError(message)
         elif code in ["ERR_INVALID_URI", "ERR_INVALID_URL", "ERR_INVALID_IP_ADDRESS"]:
-            exc = ValueError(message)
-        elif name == "ReferenceError":
-            exc = ReferenceError(message)
-        elif name == "NameError":
-            exc = NameError(message)
-        elif name in ["SyntaxError", "EvalError"]:
-            exc = SyntaxError(message)
-        elif name in ["OverflowError", "RangeError"] or code == "ERR_OUT_OF_RANGE":
-            exc = OverflowError(message)
-        elif name == "TypeError" or code in ["ERR_MISSING_ARGS", "ERR_INVALID_TUPLE", "ERR_INVALID_THIS"]:
-            exc = TypeError(message)
-        elif name == "AssertionError":
-            exc = AssertionError(message)
-        elif name == "SystemError" or code == "ERR_SYSTEM_ERROR":
-            exc = SystemError(message)
+            err = TypeError(message)
+        elif code in ["ERR_MISSING_ARGS", "ERR_INVALID_TUPLE", "ERR_INVALID_THIS"]:
+            err = TypeError(message)
         else:
-            exc = Exception(message)
+            err = Exception(message)
     elif type(data) == str:
-        exc = Exception(data)
+        err = Exception(data)
     else:
-        exc = Exception("Unexpected exception: " + str(data))
+        err = Exception("Unexpected exception: " + str(data))
 
-    return exc
+    return err
 
 
 def getInstance(app, module: str):

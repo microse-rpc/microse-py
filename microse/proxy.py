@@ -1,4 +1,4 @@
-from microse.utils import local, evalRouteId, throwUnavailableError, getInstance
+from microse.utils import evalRouteId, throwUnavailableError, getInstance
 from importlib import import_module
 from inspect import isclass
 from typing import Callable, Any
@@ -107,7 +107,7 @@ class ModuleProxy:
             if callable(getattr(ins, method)):
                 return getattr(ins, method)(*args)
             else:
-                raise TypeError(f"{self.__name__} is not a function")
+                raise TypeError(f"{self.__name__} is not callable")
 
     def __str__(self):
         return self.__name__

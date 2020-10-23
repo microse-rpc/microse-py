@@ -2,7 +2,7 @@ from websockets import connect, unix_connect
 from websockets.exceptions import ConnectionClosedOK
 from typing import Callable, Any, List
 from microse.rpc.channel import RpcChannel
-from microse.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseException, throwUnavailableError, getInstance
+from microse.utils import sequid, randStr, JSON, Map, ChannelEvents, now, parseError, throwUnavailableError, getInstance
 from microse.proxy import ModuleProxy
 import asyncio
 
@@ -172,7 +172,7 @@ class RpcClient(RpcChannel):
             task: Task = self.tasks.get(taskId)
 
             if task:
-                task.reject(parseException(data))
+                task.reject(parseError(data))
 
         elif event == ChannelEvents.PUBLISH:
             # If receives the PUBLISH event, call all the handlers
@@ -495,7 +495,7 @@ class AwaitableGenerator:
             if len(self.queue) > 0:
                 task: Task = self.queue[0]
                 self.task = self.queue[1:]
-                callee = self.module + "(route)." + self.method + "()"
+                callee = self.module + "." + self.method + "()"
                 duration = str(self.client.timeout / 1000) + "s"
                 err = TimeoutError(callee + " timeout after " + duration)
                 task.reject(err)

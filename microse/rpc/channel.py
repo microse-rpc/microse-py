@@ -77,7 +77,7 @@ class RpcChannel:
                 self.port = int(urlObj.port or self.port)
                 self.pathname = urlObj.path or "/"
         else:
-            raise TypeError("The arguments passed to RpcChannel are invalid")
+            raise TypeError("Argument 'options' must be a str, int or dict")
 
         isUnixSocket = self.protocol == "ws+unix:"
 
