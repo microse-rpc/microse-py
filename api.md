@@ -17,8 +17,10 @@ This class is considered abstract, and shall not be used in user code.
 This class extends from `ModuleProxy`, and has the following extra properties
 and methods:
 
-- `__init__(self, name: str)` Creates a root module proxy, `name` will be used
-    as a namespace for importing modules.
+- `__init__(self, name: str, canServe = True)` Creates a root module proxy,
+    `name` will be used as a namespace for importing modules, if `canServe` is
+    `false`, the proxy cannot be used to serve modules, and a client-only
+    application will be created.
 - `serve(self, options) -> asyncio.Future[RpcServer]`
     Serves an RPC server according to the given URL or Unix socket filename, or
     provide a dict for detailed options.
@@ -39,12 +41,12 @@ If the first argument passed to `serve()` or `connect()` is a string of
 filename, the RPC connection will be bound to a Unix socket, AKA IPC, for
 example:
 
-```ts
-server = await app.serve("/tmp/test.sock");
-client = await app.connect("/tmp/test.sock");
+```py
+server = await app.serve("/tmp/test.sock")
+client = await app.connect("/tmp/test.sock")
 ```
 
-**NOTE: only the `connect()` method is available for the standalone client.**
+**NOTE: `serve()` method is not available for client-only applications.**
 
 ## RpcChannel
 
@@ -57,15 +59,19 @@ The following properties and methods work in both implementations:
 
 - `id: str` The unique ID of the server or the client.
 - `dsn: str` Gets the data source name according to the configuration.
-- `open() -> asyncio.Future[RpcChannel]` Opens the channel. This method is
+- `open() -> asyncio.Future[None]` Opens the channel. This method is
     called internally by `ModuleProxyApp.serve()` and
     `ModuleProxyApp.connect()`.
 - `close() -> asyncio.Future[None]` Closes the channel.
 - `register(mod: ModuleProxy) -> asyncio.Future[None]` Registers a module
     to the channel.
-- `onError(handler: Callable` Binds an error handler invoked whenever an error
-    occurred in asynchronous operations which can't be caught during run-time,
-    the first arguments passed to the `handler` function is the exception raised.
+- `onError(handler: Callable): void` Binds an error handler invoked whenever an
+    error occurred in asynchronous operations which can't be caught during
+    run-time, the first arguments passed to the `handler` function is the
+    exception raised.
+
+Other than the above properties, the following keys listed in `ChannelOptions`
+will be patched to the channel instance as properties as well.
 
 ### ChannelOptions
 
@@ -82,7 +88,7 @@ the following keys are optional:
     provide it as well in order to grant permission to connect.
 - `id: str` In the server implementation, sets the server id, in the client
     implementation, sets the client id.
-- `codec` The codec used to encode and decode messages, currently the only
+- `codec: str` The codec used to encode and decode messages, currently the only
     supported codec is `JSON`.
 - `ssl: ssl.SSLContext` If `protocol` is `wss:`, the server must set this option
     in order to ship a secure server; if the server uses a self-signed
@@ -90,18 +96,18 @@ the following keys are optional:
 
 ## RpcServer
 
-The server implementation of the RPC channel, which has the following extra
+The server implementation of the RpcChannel, which has the following extra
 methods:
 
 - `publish(self, topic: str, data: typing.Any, clients: typing.List[str]=[]): bool`
-    Publishes data to the corresponding topic, if `clients` are provided, the
-    topic will only be published to them.
+    Publishes data to the corresponding topic, if `clients` (an array with
+    client ids) are provided, the topic will only be published to them.
 - `getClients(self): typing.List[str]` Returns all IDs of clients that connected
     to the server.
 
 ## RpcClient
 
-The client implementation of the RPC channel, which has the following extra
+The client implementation of the RpcChannel, which has the following extra
 methods:
 
 - `connecting: bool` Whether the channel is in connecting state.
@@ -109,9 +115,9 @@ methods:
 - `closed: bool` Whether the channel is closed.
 - `pause(self)`  Pauses the channel and redirect traffic to other channels.
 - `resume(self)` Resumes the channel and continue handling traffic.
-- `subscribe(self, topic: str, handle: Callable)` Subscribes a handle
+- `subscribe(self, topic: str, handle: Callable): RpcClient` Subscribes a handle
     function to the corresponding topic. The only argument passed to the `handle`
-    is the data send to the topic.
+    is the data sent to the topic.
 - `unsubscribe(self, topic: str[, handle: Callable]): bool` Unsubscribes the
     handle function or all handlers from the corresponding topic.
 
