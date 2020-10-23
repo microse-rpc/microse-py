@@ -95,7 +95,7 @@ class RpcClient(RpcChannel):
         res = self.__parseResponse(msg)
 
         if type(res) != list or len(res) < 2 or res[0] != ChannelEvents.CONNECT:
-            # protocol error, shall closed the connection
+            # Protocol error, shall close the channel.
             self.close()
             raise Exception("Cannot connect to " + self.serverId)
         else:
