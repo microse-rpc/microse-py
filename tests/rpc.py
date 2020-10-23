@@ -2,6 +2,7 @@ import unittest
 from tests.aio import AioTestCase
 from tests.RpcCommon import RpcCommonTest
 from tests.base import app, config
+from tests.server.process import serve
 import sys
 import os
 
@@ -15,9 +16,8 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
             return
 
         sockPath = os.getcwd() + "/test.sock"
-        server = await app.serve(sockPath)
+        server = await serve({ "USE_IPC": sockPath })
         client = await app.connect(sockPath)
-        await server.register(app.services.detail)
         await client.register(app.services.detail)
 
         await app.services.detail.setName("Mr. Handsome")
@@ -25,7 +25,7 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         self.assertEqual(res, "Mr. Handsome")
 
         await client.close()
-        await server.close()
+        await server.terminate()
 
     async def test_closing_server_before_closing_client(self):
         server = await app.serve(config)
