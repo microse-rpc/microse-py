@@ -42,4 +42,4 @@ jobs:
         python -m tests.local
         python -m tests.pubsub
         python -m tests.rpc
-        python -m tests.standalone
+        python -m tests.clientonly
