@@ -1,7 +1,7 @@
 import unittest
 from microse.app import ModuleProxyApp
 from tests.server.process import serve
-from tests.base import config
+from tests.base import config, AppInstance
 import asyncio
 import os
 import ssl
@@ -10,7 +10,7 @@ import websockets
 
 class RpcCommonTest:
     @property
-    def app(self) -> ModuleProxyApp:
+    def app(self) -> AppInstance:
         return self._app
 
     @property

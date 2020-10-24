@@ -7,6 +7,12 @@ whether in another process or in another machine.
 For API reference, please check the [API documentation](./api.md),
 or the [Protocol Reference](https://github.com/hyurl/microse/blob/master/docs/protocol.md).
 
+Other implementations:
+
+- [microse](https://github.com/hyurl/microse) Node.js implementation
+- [microse-swoole](https://github.com/hyurl/microse-swoole) PHP implementation
+    based on swoole
+
 ## Install
 
 ```sh
@@ -25,7 +31,13 @@ other files can use it as a root namespace and access its sub-modules.
 from microse.app import ModuleProxyApp
 import os
 
-app = ModuleProxyApp("app") # 'app' will be the root namespace for modules
+# Create an abstract class to be used for IDE intellisense:
+class AppInstance(ModuleProxyApp):
+    pass
+
+# Create the instance amd add type notation,
+# 'app' will be the root namespace for modules
+app: AppInstance = ModuleProxyApp("app")
 ```
 
 In other files, just define a class with the same name as the filename, so that
@@ -38,6 +50,18 @@ another file can access it directly via the `app` namespace.
 class Bootstrap:
     def init(self):
         # ...
+```
+
+Don't forget to augment types in the `AppInstance` class if you need IDE typing
+support:
+
+```python
+from app.Bootstrap import Bootstrap as iBootstrap
+
+class AppInstance(ModuleProxyApp):
+    @property
+    def Bootstrap(self) -> iBootstrap:
+        pass
 ```
 
 And other files can access to the modules via the namespace:
@@ -77,6 +101,20 @@ class User:
         for user in self.__users:
             if user["firstName"] == firstName:
                 return f"{user['firstName']} {user['lastName']}"
+
+
+# app/app.py
+from app.services.User import User as iUser
+
+class iServices:
+    @property
+    def User(self) -> iUser:
+        pass
+
+class AppInstance(ModuleProxyApp):
+    @property
+    def services(self) -> iService:
+        pass
 ```
 
 ```py
@@ -211,7 +249,7 @@ Microse also provides a way to be running as a client-only application, in this
 case the client will not actually load any modules since there are no such files,
 instead, it just map the module names so you can use them as usual.
 
-In the following example, we assume that `app.services.User` service is served
+In the following example, we assume that `app.services.user` service is served
 by a Node.js program, and we can use it in our python program as usual.
 
 ```py
@@ -221,16 +259,29 @@ app = ModuleProxyApp("app", False) # pass the second argument False
 
 async def handle():
     channel = await app.connect("ws://localhost:4000")
-    await channel.register(app.services.User)
+    await channel.register(app.services.user)
 
-    fullName = await app.services.User.getFullName("David")
+    fullName = await app.services.user.getFullName("David")
 
     print(fullName) # David Wood
 
 asyncio.get_event_loop().run_until_complete(handle())
 ```
 
-You can visit the Node.js version of microse from
-[hyurl/microse](https://github.com/hyurl/microse).
+For client-only application, you may need to declare all abstract classes:
 
-For more details, please check the [API documentation](./api.md).
+```py
+class iUser:
+    def getFullName(self, name: str) -> str:
+        pass
+
+class iServices:
+    @property
+    def user(self) -> iUser:
+        pass
+
+class AppInstance(ModuleProxyApp):
+    @property
+    def services(self) -> iServices:
+        pass
+```
