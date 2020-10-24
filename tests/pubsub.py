@@ -112,7 +112,7 @@ class PubSubTest(AioTestCase):
             data = msg
 
         client.subscribe("set-data", handle)
-        server.publish("set-data", "Mr. World")
+        server.publish("set-data", "Mr. World", ["abc"])
 
         while not data:
             await asyncio.sleep(0.1)
