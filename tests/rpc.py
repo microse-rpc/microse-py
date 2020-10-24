@@ -20,6 +20,9 @@ class RemoteInstanceTest(AioTestCase, RpcCommonTest):
         client = await app.connect(sockPath)
         await client.register(app.services.detail)
 
+        self.assertEqual(client.dsn, "ws+unix:" + sockPath)
+        self.assertEqual(client.serverId, "ws+unix:" + sockPath)
+
         await app.services.detail.setName("Mr. Handsome")
         res = await app.services.detail.getName()
         self.assertEqual(res, "Mr. Handsome")

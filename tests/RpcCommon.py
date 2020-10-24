@@ -21,6 +21,9 @@ class RpcCommonTest:
         server = await serve()
         client = await self.app.connect(config)
 
+        self.utils.assertEqual(client.dsn, "ws://127.0.0.1:18888/")
+        self.utils.assertEqual(client.serverId, "ws://127.0.0.1:18888/")
+
         await client.register(self.app.services.detail)
         await self.app.services.detail.setName("Mr. Handsome")
         res = await self.app.services.detail.getName()
@@ -52,6 +55,9 @@ class RpcCommonTest:
         server = await serve({"USE_URL": url})
         client = await self.app.connect(url)
 
+        self.utils.assertEqual(client.dsn, url)
+        self.utils.assertEqual(client.serverId, url)
+
         await client.register(self.app.services.detail)
 
         await self.app.services.detail.setName("Mr. Handsome")
@@ -72,6 +78,9 @@ class RpcCommonTest:
         clientConfig["ssl"] = clientSSL
         server = await serve({"USE_WSS": "true"})
         client = await self.app.connect(clientConfig)
+
+        self.utils.assertEqual(client.dsn, "wss://localhost:18888/")
+        self.utils.assertEqual(client.serverId, "wss://localhost:18888/")
 
         await client.register(self.app.services.detail)
 

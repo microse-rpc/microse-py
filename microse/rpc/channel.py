@@ -90,10 +90,13 @@ class RpcChannel:
 
     @property
     def dsn(self):
-        if self.protocol == "ws+unix:":
-            return "ipc:" + self.pathname
+        protocol = self.protocol
+        pathname = self.pathname
+
+        if protocol == "ws+unix:":
+            return protocol + pathname
         else:
-            return "rpc://" + self.hostname + ":" + str(self.port)
+            return f"{protocol}//{self.hostname}:{str(self.port)}{pathname}"
 
     def onError(self, handler: Callable):
         def handle(err: Exception):
