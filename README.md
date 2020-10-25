@@ -75,6 +75,23 @@ from app import app
 app.Bootstrap.init()
 ```
 
+### Non-class Module
+
+If a module doesn't have a class with the same name as the filename, the module
+it it self will be used instead.
+
+```py
+# app/config.py
+async def get(name: str):
+    # some async operations...
+    return value
+```
+
+```py
+# call the function directly
+value = await app.config.get("someKey")
+```
+
 ## Remote Service
 
 The above example accesses the module and calls the function in the current
@@ -146,6 +163,8 @@ import asyncio
 
 async def connect():
     client = await app.connect("ws://localhost:4000")
+
+    # Once registered, all functions of the service module will be remotized.
     await client.register(app.services.User)
 
     # Accessing the instance in local style but actually calling remote.
@@ -286,3 +305,10 @@ class AppInstance(ModuleProxyApp):
     def services(self) -> iServices:
         pass
 ```
+
+## Process Interop
+
+This implementation supports interop in the same process, that means, if it
+detects that the target remote instance is served in the current process,
+the function will always be called locally and prevent unnecessary network
+traffic.

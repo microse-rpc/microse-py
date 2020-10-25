@@ -127,7 +127,7 @@ This dictionary indicates the options used by the RpcClient's initiation, it
 inherits all `ChannelOptions`, and with the following keys:
 
 - `serverId: str` By default, the `serverId` is automatically set according to
-    the `dsn` of the server, and updated after finishing the connect. However,
+    the `dsn` of the server, and updated after established the connect. However,
     if an ID is set when serving the RPC server, it would be better to set
     `serverId` to that ID as well.
 - `timeout: int` Used to force a timeout error when an RPC request fires and
