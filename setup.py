@@ -11,10 +11,11 @@ setuptools.setup(
     description="Micro Remote Object Serving Engine",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/hyurl/microse-py",
+    url="https://github.com/microse-rpc/microse-py",
     python_requires='>=3.6',
     packages=[
-        "microse"
+        "microse",
+        "microse.rpc"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

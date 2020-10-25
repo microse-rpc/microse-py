@@ -2,3 +2,6 @@
 __pycache__/
 *.sock
 test*.py
+build/
+dist/
+*.egg-info/
