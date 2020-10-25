@@ -12,6 +12,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/microse-rpc/microse-py",
+    keywords="rpc, micro-service, module-proxy",
     python_requires='>=3.6',
     packages=[
         "microse",
