@@ -4,13 +4,14 @@ Microse (stands for *Micro Remote Object Serving Engine*) is a light-weight
 engine that provides applications the ability to serve modules as RPC services,
 whether in another process or in another machine.
 
-For API reference, please check the [API documentation](./api.md),
-or the [Protocol Reference](https://github.com/hyurl/microse/blob/master/docs/protocol.md).
+This is the python version of the microse implementation. For API reference,
+please check the [API documentation](./api.md), or the
+[Protocol Reference](https://github.com/microse-rpc/microse-node/blob/master/docs/protocol.md).
 
 Other implementations:
 
-- [microse](https://github.com/hyurl/microse) Node.js implementation
-- [microse-swoole](https://github.com/hyurl/microse-swoole) PHP implementation
+- [microse-node](https://github.com/microse-rpc/microse-node) Node.js implementation
+- [microse-swoole](https://github.com/microse-rpc/microse-swoole) PHP implementation
     based on swoole
 
 ## Install
@@ -123,8 +124,8 @@ from app import app
 import asyncio
 
 async def serve():
-    channel = await app.serve("ws://localhost:4000")
-    await channel.register(app.services.User)
+    server = await app.serve("ws://localhost:4000")
+    await server.register(app.services.User)
 
     print("Server started!")
 
@@ -144,8 +145,8 @@ from app import app
 import asyncio
 
 async def connect():
-    channel = await app.connect("ws://localhost:4000")
-    await channel.register(app.services.User)
+    client = await app.connect("ws://localhost:4000")
+    await client.register(app.services.User)
 
     # Accessing the instance in local style but actually calling remote.
     fullName = await app.services.User.getFullName("David")
@@ -258,8 +259,8 @@ from microse.app import ModuleProxyApp
 app = ModuleProxyApp("app", False) # pass the second argument False
 
 async def handle():
-    channel = await app.connect("ws://localhost:4000")
-    await channel.register(app.services.user)
+    client = await app.connect("ws://localhost:4000")
+    await client.register(app.services.user)
 
     fullName = await app.services.user.getFullName("David")
 

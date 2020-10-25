@@ -2,7 +2,7 @@
 
 ## ModuleProxy
 
-This class used to create proxy when accessing a module, it has the following
+This class is used to create proxy when accessing a module, it has the following
 properties and methods:
 
 - `__name__: str` The name (with namespace) of the module.
@@ -140,9 +140,3 @@ inherits all `ChannelOptions`, and with the following keys:
     the connection is alive, default value is `5000`ms. If the server doesn't
     response after sending a ping in time, the client will consider the server
     is down and will destroy and retry the connection.
-
-## Pub-Sub Model between the server and clients
-
-When the server publishes a message, all clients subscribe to the topic
-will receive the data and invoke their handlers, this mechanism is often used
-for the server to broadcast data to its clients.
