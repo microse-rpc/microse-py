@@ -36,7 +36,7 @@ import os
 class AppInstance(ModuleProxyApp):
     pass
 
-# Create the instance amd add type notation,
+# Create the instance amd add type annotation,
 # 'app' will be the root namespace for modules
 app: AppInstance = ModuleProxyApp("app")
 ```
