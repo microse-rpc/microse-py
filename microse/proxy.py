@@ -63,6 +63,7 @@ class ModuleProxy:
 
         if singletons and len(singletons.values()) > 0:
             route: Any
+            ins: Any = None
 
             if len(args) > 0:
                 route = args[0]
@@ -72,25 +73,24 @@ class ModuleProxy:
             # If the route matches any key of the _remoteSingletons, return the
             # corresponding singleton as wanted.
             if type(route) == str and singletons.get(route):
-                return singletons.get(route)
+                ins = singletons.get(route)
+            else:
+                _singletons = []
 
-            _singletons = []
+                for singelton in singletons.values():
+                    if getattr(singelton, "__readyState", 0):
+                        _singletons.append(singelton)
 
-            for singelton in singletons.values():
-                if getattr(singelton, "__readyState", 0):
-                    _singletons.append(singelton)
+                count = len(_singletons)
 
-            count = len(_singletons)
-            ins: Any = None
-
-            if count == 1:
-                ins = _singletons[0]
-            elif count >= 2:
-                # If the module is connected to more than one remote instances,
-                # redirect traffic to one of them automatically according to the
-                # route.
-                id = evalRouteId(route)
-                ins = _singletons[id % count]
+                if count == 1:
+                    ins = _singletons[0]
+                elif count >= 2:
+                    # If the module is connected to more than one remote
+                    # instances, redirect traffic to one of them automatically
+                    # according to the route.
+                    id = evalRouteId(route)
+                    ins = _singletons[id % count]
 
             if ins:
                 return getattr(ins, method)(*args)

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="microse",
-    version="1.0.0",
+    version="1.1.2",
     author="A-yon Lee",
     author_email="i@hyurl.com",
     description="Micro Remote Object Serving Engine",
